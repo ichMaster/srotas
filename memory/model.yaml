@@ -1,0 +1,76 @@
+# Модель інтересів Srotas — початкові 14 нод.
+# Джерело: facts-шар Lumi (знімок lumi/.lumi/store.json, 2026-07-04),
+# кластеризація Haiku → ручний перегляд 2026-07-04 (ARCHITECTURE.md §Bootstrap).
+# Формат ноди: id, label, keywords, weight (0.05..1.0). Плоский — без графа й затухання.
+# Файл редагується вручну будь-коли; зміни підхоплюються на наступному проході скорингу.
+# Код пише сюди лише скаляр weight (ruamel round-trip), зберігаючи ці коментарі.
+
+- id: ai-systems-development
+  label: "Розробка AI-систем і моделей"
+  keywords: [large language models, AI agents, machine learning architecture, neural networks, prompt engineering, model tuning, LLM applications]
+  weight: 0.85
+
+- id: science-fiction-literature
+  label: "Наукова фантастика і класична література"
+  keywords: [science fiction, Greg Egan, Strugatsky, Stanislaw Lem, Ted Chiang, Arthur C. Clarke, speculative fiction, hard sci-fi]
+  weight: 0.75
+
+- id: consciousness-philosophy
+  label: "Філософія свідомості і розуму"
+  keywords: [philosophy of mind, consciousness studies, consciousness, artificial consciousness, qualia, free will, identity]
+  weight: 0.70
+
+- id: eastern-spirituality-practice
+  label: "Східна філософія і духовні практики"
+  keywords: [tantra, Vedic philosophy, Sanskrit, meditation, Buddhism, Advaita Vedanta, mantra, spiritual practice, Eastern philosophy]
+  weight: 0.65
+
+- id: data-platform-modernization
+  label: "Модернізація дата-платформ і хмарні системи"
+  keywords: [data migration, ETL, cloud data platforms, Databricks, Snowflake, data analytics, data engineering, cloud modernization]
+  weight: 0.65
+
+- id: speculative-fiction-writing
+  label: "Письмо фантастики і творче письменство"
+  keywords: [creative writing, fiction writing, science fiction writing, storytelling, narrative, character development, speculative fiction]
+  weight: 0.60
+
+- id: worldbuilding-architecture
+  label: "Конструювання світів і архітектура систем"
+  keywords: [worldbuilding, fictional worlds, architecture, system design, spatial design, mythology, narrative architecture, urban design]
+  weight: 0.60
+
+- id: meditation-ritual-practice
+  label: "Медитація і священні ритуали"
+  keywords: [meditation, mindfulness, ritual practice, tea ceremony, mantra, spiritual rituals, contemplative practice, sacred practice]
+  weight: 0.58
+
+- id: computational-art-automata
+  label: "Обчислювальне мистецтво і клітинні автомати"
+  keywords: [cellular automata, Game of Life, computational art, emergence, digital art, algorithmic art, generative art, synthetic life]
+  weight: 0.55
+
+- id: impressionist-art-aesthetics
+  label: "Імпресіонізм і естетика світла"
+  keywords: [impressionism, Claude Monet, Camille Pissarro, art history, light in art, color theory, painting, visual arts, aesthetic theory]
+  weight: 0.48
+
+- id: quantum-physics-theory
+  label: "Квантова фізика і теоретична механіка"
+  keywords: [quantum physics, quantum entanglement, quantum mechanics, wave function collapse, observer effect, quantum computing, quantum theory]
+  weight: 0.45
+
+- id: astronomy-space-exploration
+  label: "Астрономія і дослідження космосу"
+  keywords: [astronomy, telescope, Saturn, space exploration, exoplanets, space missions, cosmology, Euclid, Mars rovers, SpaceX]
+  weight: 0.42
+
+- id: transhumanism-digital-consciousness
+  label: "Трансгуманізм і цифрова свідомість"
+  keywords: [transhumanism, mind uploading, digital consciousness, human-AI symbiosis, digital entities, consciousness transfer, cybernetics, digital life]
+  weight: 0.45
+
+- id: music-generation-composition
+  label: "Музична композиція і звуковий синтез"
+  keywords: [music creation, music generation, audio synthesis, song composition, music production, electronic music, creative music, audio art]
+  weight: 0.38
