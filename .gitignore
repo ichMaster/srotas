@@ -216,3 +216,17 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- Srotas ---
+.DS_Store
+# Config holds API keys (Guardian, Voyage, Anthropic) — hand-edited, never committed
+config.toml
+# Event journal + item store are runtime data (WAL mode → -wal/-shm sidecars)
+memory/events.sqlite
+memory/events.sqlite-wal
+memory/events.sqlite-shm
+items.sqlite
+items.sqlite-wal
+items.sqlite-shm
+# Private snapshots for the full bootstrap (phase 0.7)
+bootstrap/snapshots/

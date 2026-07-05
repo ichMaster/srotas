@@ -1,0 +1,106 @@
+# Теми початкового model.yaml (ARCHITECTURE.md §Bootstrap / Initial model from Lumi facts).
+# Джерело: 1274 не-obsolete фактів з lumi/.lumi/store.json (знімок 2026-07-04),
+# кластеризація Haiku, переглянуто вручну 2026-07-04.
+# Дослівні факти-приклади (samples) прибрано — приватне, а файл у git.
+# evidence — к-сть фактів-опор (для калібрування ваг); work — ймовірно робоча тема.
+# Фінальні ноди переїдуть у memory/model.yaml без полів evidence/work
+# (формат ноди прототипу: id, label, keywords, weight).
+
+candidates:
+  - id: ai-systems-development
+    label: "Розробка AI-систем і моделей"
+    keywords: [large language models, AI agents, machine learning architecture, neural networks, prompt engineering, model tuning, LLM applications]
+    weight: 0.85
+    evidence: 160
+    work: false
+
+  - id: science-fiction-literature
+    label: "Наукова фантастика і класична література"
+    keywords: [science fiction, Greg Egan, Strugatsky, Stanislaw Lem, Ted Chiang, Arthur C. Clarke, speculative fiction, hard sci-fi]
+    weight: 0.75
+    evidence: 90
+    work: false
+
+  - id: consciousness-philosophy
+    label: "Філософія свідомості і розуму"
+    keywords: [philosophy of mind, consciousness studies, consciousness, artificial consciousness, qualia, free will, identity]
+    weight: 0.70
+    evidence: 70
+    work: false
+
+  - id: eastern-spirituality-practice
+    label: "Східна філософія і духовні практики"
+    keywords: [tantra, Vedic philosophy, Sanskrit, meditation, Buddhism, Advaita Vedanta, mantra, spiritual practice, Eastern philosophy]
+    weight: 0.65
+    evidence: 55
+    work: false
+
+  - id: data-platform-modernization
+    label: "Модернізація дата-платформ і хмарні системи"
+    keywords: [data migration, ETL, cloud data platforms, Databricks, Snowflake, data analytics, data engineering, cloud modernization]
+    weight: 0.65
+    evidence: 65
+    work: true
+
+  - id: speculative-fiction-writing
+    label: "Письмо фантастики і творче письменство"
+    keywords: [creative writing, fiction writing, science fiction writing, storytelling, narrative, character development, speculative fiction]
+    weight: 0.60
+    evidence: 45
+    work: false
+
+  - id: worldbuilding-architecture
+    label: "Конструювання світів і архітектура систем"
+    keywords: [worldbuilding, fictional worlds, architecture, system design, spatial design, mythology, narrative architecture, urban design]
+    weight: 0.60
+    evidence: 50
+    work: false
+
+  - id: meditation-ritual-practice
+    label: "Медитація і священні ритуали"
+    keywords: [meditation, mindfulness, ritual practice, tea ceremony, mantra, spiritual rituals, contemplative practice, sacred practice]
+    weight: 0.58
+    evidence: 45
+    work: false
+
+  - id: computational-art-automata
+    label: "Обчислювальне мистецтво і клітинні автомати"
+    keywords: [cellular automata, Game of Life, computational art, emergence, digital art, algorithmic art, generative art, synthetic life]
+    weight: 0.55
+    evidence: 40
+    work: false
+
+  - id: impressionist-art-aesthetics
+    label: "Імпресіонізм і естетика світла"
+    keywords: [impressionism, Claude Monet, Camille Pissarro, art history, light in art, color theory, painting, visual arts, aesthetic theory]
+    weight: 0.48
+    evidence: 30
+    work: false
+
+  - id: quantum-physics-theory
+    label: "Квантова фізика і теоретична механіка"
+    keywords: [quantum physics, quantum entanglement, quantum mechanics, wave function collapse, observer effect, quantum computing, quantum theory]
+    weight: 0.45
+    evidence: 30
+    work: false
+
+  - id: astronomy-space-exploration
+    label: "Астрономія і дослідження космосу"
+    keywords: [astronomy, telescope, Saturn, space exploration, exoplanets, space missions, cosmology, Euclid, Mars rovers, SpaceX]
+    weight: 0.42
+    evidence: 25
+    work: false
+
+  - id: music-generation-composition
+    label: "Музична композиція і звуковий синтез"
+    keywords: [music creation, music generation, audio synthesis, song composition, music production, electronic music, creative music, audio art]
+    weight: 0.38
+    evidence: 20
+    work: false
+
+  - id: transhumanism-digital-consciousness
+    label: "Трансгуманізм і цифрова свідомість"
+    keywords: [transhumanism, mind uploading, digital consciousness, human-AI symbiosis, digital entities, consciousness transfer, cybernetics, digital life]
+    weight: 0.45
+    evidence: 30
+    work: false

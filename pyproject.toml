@@ -1,0 +1,31 @@
+# Srotas — self-contained personal news feed with a feedback-learning interest model.
+# Dependencies grow one roadmap phase at a time (ARCHITECTURE.md §Repository layout);
+# only what the shipped phases use is listed here. Deliberately no
+# sentence-transformers / torch — embeddings go through the Voyage API (phase 0.3+).
+
+[project]
+name = "srotas"
+version = "0.0.0"
+description = "Self-contained personal news feed whose interest model learns from free-text feedback"
+requires-python = ">=3.12"
+dependencies = [
+    # v0.1 — memory package: round-trip YAML that preserves the human's comments
+    "ruamel.yaml>=0.18",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "ruff>=0.5",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "W", "B"]
