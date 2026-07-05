@@ -1,0 +1,23 @@
+Srotas — Release Notes
+======================
+
+Version 0.1.0 (2026-07-05)
+---------------------------
+Phase v0.1 — Memory package + initial model.yaml (ROADMAP §0.1).
+The interest model now exists on disk with an auditable origin.
+
+- memory/model.yaml: the initial interest model — 14 reviewed topic nodes in the
+  flat prototype format (id, label, keywords, weight); evidence/work metadata
+  from the candidates dropped.
+- core/model.py: Node reader and a ruamel round-trip weight writer that preserves
+  the human's comments and formatting (pyyaml deliberately not used).
+- core/events.py: append-only event journal in memory/events.sqlite (WAL) with
+  the minimal, non-extensible schema (id, ts, kind, node_id, payload);
+  kind ∈ {bootstrap, feedback, weight_update}.
+- core/init_memory.py: writes one bootstrap provenance event tracing the model
+  to the Lumi facts snapshot (2026-07-04, node_count=14); idempotent.
+- Toolchain: pyproject with pytest + ruff. 21 tests green, ruff clean; all
+  paid/network calls are mocked (none exist this phase).
+
+Contracts pinned this release: the flat node format and the minimal events
+schema, each with a contract test.
