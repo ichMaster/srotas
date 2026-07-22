@@ -21,7 +21,7 @@ from pathlib import Path
 
 import httpx
 
-from core import items
+from core import config, items, model
 from core.model import Node
 
 GUARDIAN_SEARCH_URL = "https://content.guardianapis.com/search"
@@ -115,3 +115,33 @@ def collect(
         if owns_client:
             client.close()
     return CollectSummary(nodes=len(nodes), fetched=fetched, new=new, deduped=deduped)
+
+
+def run_collect(
+    *,
+    config_path: str | Path = config.DEFAULT_CONFIG_PATH,
+    model_path: str | Path = model.DEFAULT_MODEL_PATH,
+    db_path: str | Path = items.DEFAULT_ITEMS_DB,
+    client: httpx.Client | None = None,
+) -> CollectSummary:
+    """Manual entry point: load the key + the model, then collect (SROTAS-008).
+
+    No scheduler and no embedding pass (both Out-of-scope this phase — 0.4/0.3).
+    Everything is injectable so the integration test drives the full wiring with
+    a mock-transport client and temp files, never the network.
+    """
+    cfg = config.load_config(config_path)
+    nodes = model.load_model(model_path)
+    return collect(nodes, cfg.guardian_api_key, db_path, client=client)
+
+
+def main() -> None:
+    summary = run_collect()
+    print(
+        f"Guardian collect over {summary.nodes} nodes: "
+        f"{summary.fetched} fetched, {summary.new} new, {summary.deduped} deduped"
+    )
+
+
+if __name__ == "__main__":
+    main()
