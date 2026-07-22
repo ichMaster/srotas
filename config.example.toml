@@ -1,0 +1,10 @@
+# Srotas configuration — copy this file to `config.toml` (gitignored) and fill
+# in your keys. The shape grows one roadmap phase at a time; only what the
+# shipped phases use is listed here. Later phases add the Voyage and Anthropic
+# API keys, the cosine relevance threshold, the collection interval, the weight
+# deltas, and the topic blacklist (ARCHITECTURE.md §Configuration).
+
+# v0.2 — the Guardian Open Platform key (free developer tier).
+# Request one at https://open-platform.theguardian.com/access/
+[guardian]
+api_key = "your-guardian-open-platform-key"
