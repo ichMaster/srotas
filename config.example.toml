@@ -8,3 +8,8 @@
 # Request one at https://open-platform.theguardian.com/access/
 [guardian]
 api_key = "your-guardian-open-platform-key"
+
+# v0.3 — the Voyage AI key for embeddings (model voyage-3, shared vector space
+# with Lumi's RAG). Request one at https://dashboard.voyageai.com/
+[voyage]
+api_key = "your-voyage-api-key"

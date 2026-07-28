@@ -26,6 +26,9 @@ class Config:
     """A typed view over ``config.toml``; grows one field per phase as needed."""
 
     guardian_api_key: str
+    # v0.3 — Voyage embeddings key; empty when absent (guardian-only flows don't
+    # need it). The scoring path validates it is set before embedding.
+    voyage_api_key: str = ""
 
 
 def load_config(path: str | Path = DEFAULT_CONFIG_PATH) -> Config:
@@ -54,4 +57,7 @@ def load_config(path: str | Path = DEFAULT_CONFIG_PATH) -> Config:
     if not isinstance(guardian_key, str) or not guardian_key.strip():
         raise ValueError("[guardian] api_key must be a non-empty string")
 
-    return Config(guardian_api_key=guardian_key)
+    voyage_tbl = data.get("voyage")
+    voyage_key = voyage_tbl.get("api_key", "") if isinstance(voyage_tbl, dict) else ""
+
+    return Config(guardian_api_key=guardian_key, voyage_api_key=voyage_key)

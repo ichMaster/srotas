@@ -49,3 +49,23 @@ def test_example_config_documents_guardian_key():
     text = (REPO_ROOT / "config.example.toml").read_text(encoding="utf-8")
     assert "[guardian]" in text
     assert "api_key" in text
+
+
+def test_load_reads_voyage_key_when_present(tmp_path):
+    p = tmp_path / "config.toml"
+    p.write_text(
+        '[guardian]\napi_key = "g"\n[voyage]\napi_key = "v"\n', encoding="utf-8"
+    )
+    assert config.load_config(p).voyage_api_key == "v"
+
+
+def test_voyage_key_defaults_empty_when_absent(tmp_path):
+    """Guardian-only configs stay valid — the Voyage key defaults to empty."""
+    p = tmp_path / "config.toml"
+    p.write_text('[guardian]\napi_key = "g"\n', encoding="utf-8")
+    assert config.load_config(p).voyage_api_key == ""
+
+
+def test_example_config_documents_voyage_key():
+    text = (REPO_ROOT / "config.example.toml").read_text(encoding="utf-8")
+    assert "[voyage]" in text

@@ -138,3 +138,43 @@ def count_items(db_path: str | Path = DEFAULT_ITEMS_DB) -> int:
     """Number of rows in the store."""
     with _connect(db_path) as conn:
         return int(conn.execute("SELECT COUNT(*) FROM items").fetchone()[0])
+
+
+# --- Embedding cache (SROTAS-009) -----------------------------------------
+# The embedding BLOB is the Voyage vector cache; the store keeps the bytes, the
+# embedder (core/embeddings.py) owns the vector<->bytes serialization.
+
+
+def read_unembedded(db_path: str | Path = DEFAULT_ITEMS_DB) -> list[Item]:
+    """Items whose ``embedding`` is still NULL, oldest ``first_seen`` first."""
+    with _connect(db_path) as conn:
+        rows = conn.execute(
+            "SELECT url, source, title, summary, published_at "
+            "FROM items WHERE embedding IS NULL ORDER BY first_seen, url"
+        ).fetchall()
+    return [
+        Item(
+            url=row["url"],
+            source=row["source"],
+            title=row["title"],
+            summary=row["summary"],
+            published_at=row["published_at"],
+        )
+        for row in rows
+    ]
+
+
+def set_embedding(db_path: str | Path, url: str, blob: bytes) -> None:
+    """Cache one item's embedding BLOB, keyed on URL."""
+    with _connect(db_path) as conn:
+        conn.execute("UPDATE items SET embedding = ? WHERE url = ?", (blob, url))
+        conn.commit()
+
+
+def get_embedding(db_path: str | Path, url: str) -> bytes | None:
+    """Read one item's cached embedding BLOB (``None`` if unset/absent)."""
+    with _connect(db_path) as conn:
+        row = conn.execute(
+            "SELECT embedding FROM items WHERE url = ?", (url,)
+        ).fetchone()
+    return row["embedding"] if row else None
