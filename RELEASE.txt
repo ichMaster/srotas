@@ -1,6 +1,28 @@
 Srotas — Release Notes
 ======================
 
+Version 0.2.0 (2026-07-29)
+---------------------------
+Phase v0.2 — Guardian collector + items.sqlite (ROADMAP §0.2).
+Real articles now land on disk, deduplicated by URL.
+
+- core/config.py: read-only config seam over stdlib tomllib; the Guardian key is
+  read from the gitignored config.toml (fails loudly on a missing file/key).
+  Committed config.example.toml documents the shape.
+- core/items.py: the item store — items.sqlite (WAL) on the pinned 9-column
+  schema (url PRIMARY KEY, source, title, summary, published_at, first_seen,
+  embedding, score, top_node); Item class; upsert() dedups by URL, preserves
+  first_seen, and leaves embedding/score/top_node NULL for phase 0.3.
+- collectors/guardian.py: the first collector — one OR-joined Guardian request
+  per node (free-tier budget), normalized into Item rows; run_collect() +
+  `python -m collectors.guardian` fills items.sqlite and prints a
+  fetched/new/deduped summary. No scheduler, no embeddings (phases 0.4 / 0.3).
+- Dependency added: httpx. 40 tests green, ruff clean; all Guardian HTTP mocked,
+  no paid/network call in CI.
+
+Contracts pinned this release: the Item shape / items schema (contract test);
+the config seam (tomllib read) introduced.
+
 Version 0.1.0 (2026-07-05)
 ---------------------------
 Phase v0.1 — Memory package + initial model.yaml (ROADMAP §0.1).
