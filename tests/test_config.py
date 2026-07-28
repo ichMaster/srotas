@@ -69,3 +69,17 @@ def test_voyage_key_defaults_empty_when_absent(tmp_path):
 def test_example_config_documents_voyage_key():
     text = (REPO_ROOT / "config.example.toml").read_text(encoding="utf-8")
     assert "[voyage]" in text
+
+
+def test_load_reads_scoring_threshold(tmp_path):
+    p = tmp_path / "config.toml"
+    p.write_text(
+        '[guardian]\napi_key = "g"\n[scoring]\nthreshold = 0.5\n', encoding="utf-8"
+    )
+    assert config.load_config(p).cosine_threshold == 0.5
+
+
+def test_cosine_threshold_defaults_to_035(tmp_path):
+    p = tmp_path / "config.toml"
+    p.write_text('[guardian]\napi_key = "g"\n', encoding="utf-8")
+    assert config.load_config(p).cosine_threshold == 0.35

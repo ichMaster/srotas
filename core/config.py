@@ -29,6 +29,9 @@ class Config:
     # v0.3 — Voyage embeddings key; empty when absent (guardian-only flows don't
     # need it). The scoring path validates it is set before embedding.
     voyage_api_key: str = ""
+    # v0.3 — the relevance gate on the pure cosine (calibrated via the CLI
+    # preview); it never applies to the weighted score.
+    cosine_threshold: float = 0.35
 
 
 def load_config(path: str | Path = DEFAULT_CONFIG_PATH) -> Config:
@@ -60,4 +63,13 @@ def load_config(path: str | Path = DEFAULT_CONFIG_PATH) -> Config:
     voyage_tbl = data.get("voyage")
     voyage_key = voyage_tbl.get("api_key", "") if isinstance(voyage_tbl, dict) else ""
 
-    return Config(guardian_api_key=guardian_key, voyage_api_key=voyage_key)
+    scoring_tbl = data.get("scoring")
+    threshold = (
+        scoring_tbl.get("threshold", 0.35) if isinstance(scoring_tbl, dict) else 0.35
+    )
+
+    return Config(
+        guardian_api_key=guardian_key,
+        voyage_api_key=voyage_key,
+        cosine_threshold=float(threshold),
+    )

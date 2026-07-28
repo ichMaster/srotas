@@ -178,3 +178,41 @@ def get_embedding(db_path: str | Path, url: str) -> bytes | None:
             "SELECT embedding FROM items WHERE url = ?", (url,)
         ).fetchone()
     return row["embedding"] if row else None
+
+
+# --- Scoring accessors (SROTAS-010) ---------------------------------------
+
+
+def read_embedded(db_path: str | Path = DEFAULT_ITEMS_DB) -> list[tuple[Item, bytes]]:
+    """Items that already have a cached embedding, paired with the raw BLOB."""
+    with _connect(db_path) as conn:
+        rows = conn.execute(
+            "SELECT url, source, title, summary, published_at, embedding "
+            "FROM items WHERE embedding IS NOT NULL ORDER BY first_seen, url"
+        ).fetchall()
+    return [
+        (
+            Item(
+                url=row["url"],
+                source=row["source"],
+                title=row["title"],
+                summary=row["summary"],
+                published_at=row["published_at"],
+            ),
+            row["embedding"],
+        )
+        for row in rows
+    ]
+
+
+def set_score(
+    db_path: str | Path, url: str, score: float | None, top_node: str | None
+) -> None:
+    """Write a scoring pass's ``score`` + ``top_node`` for one item (NULLs clear
+    an item that no longer clears the gate)."""
+    with _connect(db_path) as conn:
+        conn.execute(
+            "UPDATE items SET score = ?, top_node = ? WHERE url = ?",
+            (score, top_node, url),
+        )
+        conn.commit()
