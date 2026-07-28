@@ -216,3 +216,21 @@ def set_score(
             (score, top_node, url),
         )
         conn.commit()
+
+
+def read_top_scored(
+    db_path: str | Path = DEFAULT_ITEMS_DB, limit: int = 20
+) -> list[tuple[str, str, str, float, str]]:
+    """The top ``limit`` scored items (``top_node`` set), highest score first.
+
+    Each row is ``(url, source, title, score, top_node)``."""
+    with _connect(db_path) as conn:
+        rows = conn.execute(
+            "SELECT url, source, title, score, top_node FROM items "
+            "WHERE top_node IS NOT NULL ORDER BY score DESC, url LIMIT ?",
+            (limit,),
+        ).fetchall()
+    return [
+        (row["url"], row["source"], row["title"], row["score"], row["top_node"])
+        for row in rows
+    ]

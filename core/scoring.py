@@ -20,11 +20,13 @@ rows is the backfill pass (SROTAS-011). All Voyage HTTP is **mocked** in tests.
 
 from __future__ import annotations
 
+import argparse
 import math
 from collections.abc import Sequence
+from dataclasses import dataclass
 from pathlib import Path
 
-from core import embeddings, items
+from core import config, embeddings, items, model
 from core.model import Node
 
 
@@ -101,3 +103,100 @@ def score_items(
         if best_node is not None:
             scored += 1
     return scored
+
+
+# --- CLI preview (SROTAS-012) ---------------------------------------------
+
+
+@dataclass(frozen=True)
+class PreviewRow:
+    """One row of the top-N preview; ``cosine`` is recovered as score / weight."""
+
+    rank: int
+    score: float
+    cosine: float
+    top_node: str
+    source: str
+    title: str
+    url: str
+
+
+def preview(
+    db_path: str | Path = items.DEFAULT_ITEMS_DB,
+    nodes: Sequence[Node] = (),
+    *,
+    threshold: float = 0.35,
+    top_n: int = 20,
+    api_key: str = "",
+    client=None,
+    embed_fn: embeddings.Embedder | None = None,
+) -> list[PreviewRow]:
+    """Score at ``threshold`` (calibration is free — vectors are cached), then
+    return the top ``top_n`` items by descending score."""
+    score_items(
+        db_path,
+        nodes,
+        threshold=threshold,
+        api_key=api_key,
+        client=client,
+        embed_fn=embed_fn,
+    )
+    weights = {node.id: node.weight for node in nodes}
+    rows: list[PreviewRow] = []
+    for rank, (url, source, title, score, top_node) in enumerate(
+        items.read_top_scored(db_path, top_n), start=1
+    ):
+        weight = weights.get(top_node, 1.0)
+        cos = score / weight if weight else 0.0
+        rows.append(PreviewRow(rank, score, cos, top_node, source, title, url))
+    return rows
+
+
+def format_preview(rows: Sequence[PreviewRow]) -> str:
+    """Render preview rows as an aligned table for the terminal."""
+    if not rows:
+        return "(no items cleared the cosine gate — lower --threshold to see more)"
+    header = f"{'#':>2}  {'score':>6}  {'cos':>5}  {'top_node':<26}  title"
+    lines = [header, "-" * len(header)]
+    for r in rows:
+        lines.append(
+            f"{r.rank:>2}  {r.score:>6.3f}  {r.cosine:>5.3f}  "
+            f"{r.top_node:<26.26}  {r.title[:58]}"
+        )
+    return "\n".join(lines)
+
+
+def main(argv: Sequence[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(prog="python -m core.scoring")
+    parser.add_argument(
+        "--preview", action="store_true", help="print the top-N scored items"
+    )
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=None,
+        help="override the cosine gate for calibration (default: config value)",
+    )
+    parser.add_argument("--top", type=int, default=20, help="how many items to show")
+    args = parser.parse_args(argv)
+
+    if not args.preview:
+        parser.print_help()
+        return
+
+    cfg = config.load_config()
+    nodes = model.load_model()
+    threshold = args.threshold if args.threshold is not None else cfg.cosine_threshold
+    rows = preview(
+        items.DEFAULT_ITEMS_DB,
+        nodes,
+        threshold=threshold,
+        top_n=args.top,
+        api_key=cfg.voyage_api_key,
+    )
+    print(f"cosine gate ≥ {threshold:.2f} · top {len(rows)}")
+    print(format_preview(rows))
+
+
+if __name__ == "__main__":
+    main()
