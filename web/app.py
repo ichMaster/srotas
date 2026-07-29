@@ -1,14 +1,19 @@
-"""SROTAS-013 — the web feed (FastAPI + HTMX).
+"""SROTAS-013/014/018 — the web feed (FastAPI + HTMX).
 
 One screen: `GET /` reads the scored items from `items.sqlite` and renders them
 as cards, grouped into days (day = `date(published_at)`, falling back to
 `first_seen`) with **fresh days on top** and **descending score within a day**
 (ARCHITECTURE §Feed). Each card shows the title link, source, date, score, the
-`top_node`'s Ukrainian label (the "why suggested"), and a feedback field that
-renders but **posts nowhere** (the handler is phase 0.5).
+`top_node`'s Ukrainian label (the "why suggested"), a clickable node-tag filter
+(`?node=`), and a feedback field.
 
-The app binds to **127.0.0.1 only** — it will expose a money-spending,
-model-mutating POST at 0.5 and must never listen on an external interface.
+`POST /feedback` closes the loop (ARCHITECTURE §Feedback): the card's text is
+classified (Haiku), the classified reaction shifts the card's `top_node` weight
+or queues a pending topic, and — for a weight change — the feed is re-scored
+(free, embeddings cached) before the updated feed re-renders.
+
+The app binds to **127.0.0.1 only** — `/feedback` spends money (Haiku) and
+mutates the model, so it must never listen on an external interface.
 """
 
 from __future__ import annotations
@@ -17,18 +22,30 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from fastapi import FastAPI, Query, Request
+from fastapi import FastAPI, Form, Query, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from core import config, items, model, pipeline
+from core import (
+    config,
+    events,
+    feedback,
+    items,
+    model,
+    pending_topics,
+    pipeline,
+    scoring,
+)
 
 # Never an external interface (ARCHITECTURE §Feed).
 HOST = "127.0.0.1"
 PORT = 8000
 
-# The item store the feed reads; overridable in tests.
+# The memory/item-store paths the routes read and write; overridable in tests.
 DB_PATH: str | Path = items.DEFAULT_ITEMS_DB
+MODEL_PATH: str | Path = model.DEFAULT_MODEL_PATH
+EVENTS_DB: str | Path = events.DEFAULT_EVENTS_DB
+PENDING_TOPICS_PATH: str | Path = pending_topics.DEFAULT_PENDING_TOPICS_PATH
 
 _TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
@@ -92,19 +109,72 @@ def build_days(
     return days
 
 
-@app.get("/", response_class=HTMLResponse)
-def feed(request: Request, node: str | None = Query(default=None)):
+def _render_feed(request: Request, node: str | None) -> HTMLResponse:
     # Filtering lives in the card tags (ARCHITECTURE §Feed): ?node=<id> narrows
     # the feed to that node; "всі" / no param resets.
     active = node if node and node != "всі" else None
     feed_items = items.read_feed(DB_PATH)
     if active:
         feed_items = [it for it in feed_items if it.top_node == active]
-    labels = {n.id: n.label for n in model.load_model()}
+    labels = {n.id: n.label for n in model.load_model(MODEL_PATH)}
     days = build_days(feed_items)
     return _TEMPLATES.TemplateResponse(
         request, "feed.html", {"days": days, "labels": labels, "node": active}
     )
+
+
+@app.get("/", response_class=HTMLResponse)
+def feed(request: Request, node: str | None = Query(default=None)):
+    return _render_feed(request, node)
+
+
+@app.post("/feedback", response_class=HTMLResponse)
+def post_feedback(
+    request: Request,
+    url: str = Form(...),
+    title: str = Form(...),
+    top_node: str = Form(...),
+    text: str = Form(...),
+    node: str = Form(default=""),
+):
+    """Classify a card's reaction, apply it, re-score on a weight change, and
+    re-render the feed (ARCHITECTURE §Feedback)."""
+    cfg = config.load_config()
+    classification = feedback.classify(text, title, top_node, cfg.anthropic_api_key)
+
+    if classification.reaction == "new_topic":
+        feedback.apply_reaction(
+            "new_topic",
+            None,
+            url,
+            text,
+            topic_hint=classification.topic_hint,
+            model_path=MODEL_PATH,
+            events_db=EVENTS_DB,
+            pending_topics_path=PENDING_TOPICS_PATH,
+        )
+    else:
+        feedback.apply_reaction(
+            classification.reaction,
+            top_node,
+            url,
+            text,
+            model_path=MODEL_PATH,
+            events_db=EVENTS_DB,
+            pending_topics_path=PENDING_TOPICS_PATH,
+            like_delta=cfg.feedback_like_delta,
+            dislike_delta=cfg.feedback_dislike_delta,
+        )
+        # A weight just changed — re-score so the feed reorders immediately.
+        # Free: item embeddings are cached (ARCHITECTURE §Scoring).
+        scoring.score_items(
+            DB_PATH,
+            model.load_model(MODEL_PATH),
+            threshold=cfg.cosine_threshold,
+            api_key=cfg.voyage_api_key,
+        )
+
+    return _render_feed(request, node or None)
 
 
 def main() -> None:  # pragma: no cover

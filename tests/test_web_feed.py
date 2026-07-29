@@ -47,11 +47,13 @@ def test_unscored_items_are_not_shown(tmp_path, monkeypatch):
     assert "Unscored" not in body  # top_node NULL → not in the feed
 
 
-def test_card_has_inert_feedback_field(tmp_path, monkeypatch):
+def test_card_has_a_feedback_field(tmp_path, monkeypatch):
+    # Superseded by SROTAS-018: the field now posts to /feedback (no longer
+    # inert) — see tests/test_feedback_route.py for the full wiring coverage.
     db = tmp_path / "items.sqlite"
     _seed(db, "u1", 0.42, "ai-systems-development", "2026-07-29", "T")
     body = _client(db, monkeypatch).get("/").text
-    assert "disabled" in body  # the feedback field renders but is inert (0.5)
+    assert 'name="text"' in body
 
 
 def test_empty_feed_renders(tmp_path, monkeypatch):
