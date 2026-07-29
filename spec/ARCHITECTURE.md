@@ -13,7 +13,9 @@ flowchart TD
     C["collectors/<br/>guardian · wikipedia · gnews"] --> IS[("items.sqlite")]
     M --> SC["core/scoring.py<br/>Voyage embeddings · cosine gate · × weight"]
     IS --> SC
-    SC --> F["web/app.py<br/>FastAPI + HTMX"]
+    SC --> TR["core/translate.py<br/>Haiku → uk cache (0.8)"]
+    TR -. "title_uk/summary_uk/body_uk" .-> IS
+    TR --> F["web/app.py<br/>FastAPI + HTMX · uk toggle (0.9)"]
     F -- "POST /feedback" --> CL["core/feedback.py<br/>Haiku classifier"]
     CL -- "±delta + event" --> M
 ```
@@ -70,16 +72,24 @@ original text, so any model change is traceable to a specific event.
 ## Item store
 
 ```sql
-items(url PRIMARY KEY, source, title, summary,
+items(url PRIMARY KEY, source, title, summary, body,
       published_at, first_seen,
       embedding BLOB,      -- Voyage vector cache; computed once at collection
-      score REAL, top_node TEXT)
+      score REAL, top_node TEXT,
+      title_uk TEXT, summary_uk TEXT, body_uk TEXT)  -- Haiku translation cache (§Translation)
 ```
 
 Deduplication is by **URL** only — no simhash (that is stage 6). The embedding
 cache is mandatory given the paid API: re-scoring after a weight change is then
 instant and free. Changing the embedding model means resetting the `embedding`
 column.
+
+`body` is the full article text (nullable — only Guardian returns it, via the
+API's `bodyText` field; Wikipedia/GNews leave it NULL). The `*_uk` columns are
+the **Ukrainian translation cache** (added in phase 0.8, §Translation): filled
+once by a Haiku call, nullable until then, and — like the embedding cache —
+reused rather than recomputed. Phases: `body` + `*_uk` arrive in **0.8**; the
+9-column core (through `top_node`) is the v0.2 baseline.
 
 `published_at` is **nullable** — not every source dates its items (Wikipedia
 articles have no publication date); wherever a day matters (feed grouping), the
@@ -93,9 +103,11 @@ collector's output is normalized into an `Item`.
 
 - **The Guardian** — Open Platform API, free developer key:
   `content.guardianapis.com/search?q=...` → title, trailText, webUrl,
-  webPublicationDate. **One request per node** (keywords joined with OR), not
-  one per keyword: at 14 nodes × ~7 keywords × 6 cycles/day, per-keyword would
-  exceed the free tier (500/day); per-node OR gives ~84 calls/day.
+  webPublicationDate, and (from phase 0.8) **bodyText** — the full article body
+  via `show-fields`, mapped to the item's `body`; no scraping. **One request per
+  node** (keywords joined with OR), not one per keyword: at 14 nodes × ~7
+  keywords × 6 cycles/day, per-keyword would exceed the free tier (500/day);
+  per-node OR gives ~84 calls/day.
 - **Wikipedia** — REST API: article search by keywords + the daily featured
   feed. Items carry no `published_at`; the feed day falls back to `first_seen`.
 - **Google News RSS** —
@@ -138,6 +150,23 @@ tokens — cents per month). There is no local model at all — no
 sentence-transformers, no torch. The only network in scoring is the embedding
 call; there are no LLM calls in scoring.
 
+## Translation
+
+Added in phase 0.8 (MISSION §Scope, decision 26). Each item is translated to
+Ukrainian so the feed reads natively; the original is always one toggle away
+(§Feed). A single **Haiku-class** call via the Anthropic SDK translates an
+item's `title`, `summary`, and `body` in one request, and the results are cached
+in `items.sqlite` (`title_uk`, `summary_uk`, `body_uk`). Translation is
+therefore a **once-per-item** cost and switching languages in the feed is free.
+
+It is the last step of each cycle — **collect → embed → score → translate** —
+and, like embedding, only **untranslated** items are sent (cache reuse); a
+re-run translates nothing. The classifier (§Feedback) and the translator share
+the Anthropic key in config. `body` may be NULL (Wikipedia/GNews); those items
+translate whatever fields they have. This is a **display** feature: it never
+touches scoring, which stays LLM-free (MISSION §Scope, decision 26). All
+Anthropic HTTP is **mocked** in tests — never a paid or live call in CI.
+
 ## Feed
 
 FastAPI + HTMX, one screen. Cards sorted by descending score within a day,
@@ -152,6 +181,15 @@ interface in the prototype.
 The node tag on a card is **clickable**: clicking filters the feed to that
 node; an "all" link resets the filter. There is no separate filter-button panel
 and no period toggle — filtering lives in the cards themselves.
+
+**Language (phase 0.9).** Each card renders in **Ukrainian by default**
+(`title_uk` / `summary_uk`) with the original one click away: a per-card
+**language toggle** (укр / original) swaps that card — and, in the article
+view, its `body` — between the cached Ukrainian and the source text,
+**independently** of every other card (an HTMX swap on the card, no page reload,
+no global switch). An item with no cached translation (a GNews/Wikipedia item,
+or one not yet translated) falls back to the original and the toggle is
+inactive.
 
 ## Feedback
 
@@ -223,7 +261,10 @@ keeps collectors away from them.
 `config.toml` holds API keys (Guardian, Voyage, Anthropic), the cutoff
 threshold, the collection interval, the weight deltas, and the topic blacklist.
 It is read with the stdlib `tomllib` (no write path — the file is hand-edited).
-It is gitignored; a committed `config.example.toml` documents the shape.
+It is gitignored; a committed `config.example.toml` documents the shape. The
+Anthropic key is used by two features — feed translation (§Translation, from
+phase 0.8) and the feedback classifier (§Feedback, phase 0.5) — with the same
+key.
 
 ## Repository layout
 
@@ -234,7 +275,8 @@ srotas/
                      #   claude_export.py, browser_history.py, notion.py
                      # bootstrap/snapshots/ — store.json snapshots, gitignored
   collectors/        # guardian.py, wikipedia.py, gnews.py
-  core/              # model.py, events.py, items.py, scoring.py, feedback.py, config.py
+  core/              # model.py, events.py, items.py, config.py, embeddings.py,
+                     #   scoring.py, pipeline.py, translate.py, feedback.py
   web/               # app.py, templates/
   tests/             # pytest — mocks for paid/network calls
   spec/              # MISSION / ARCHITECTURE / ROADMAP / vision + model-candidates.yaml
@@ -264,14 +306,22 @@ each with a test:
 - **The memory package is code-independent** — plain files in `memory/`; no
   memory API endpoints, no imports from Lumi/kiln. A later stage reads these
   files; the prototype only writes them.
-- **No LLM in scoring** — the only LLM calls are feedback classification and
-  bootstrap extraction. Scoring's only network is the Voyage embedding call.
+- **No LLM in scoring** — scoring's only network is the Voyage embedding call.
+  LLM calls exist only **outside** scoring: feedback classification, bootstrap
+  extraction, and feed translation (§Translation, from phase 0.8).
 - **The relevance gate is cosine-only** — the cutoff threshold never applies to
   the weighted score; weight ranks, it does not decide existence.
 - **Model changes are traceable** — every weight change has a matching `events`
   row carrying the user's original text.
 - **Lumi data is snapshot-only** — read from hand-copied files, never a live
   connection.
+- **The Item schema is fixed** — the columns in §Item store: the v0.2
+  nine-column core (through `top_node`) plus `body` and the `*_uk` translation
+  cache (phase 0.8). Pinned by a contract test; extend it only through the spec.
+- **Translation is cached and mockable** — one Haiku-class call per item fills
+  `title_uk` / `summary_uk` / `body_uk`; only untranslated items are sent, and
+  the Anthropic call is mocked in tests. It is display-only and never runs in
+  scoring.
 
 ## Testing & CI
 

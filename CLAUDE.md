@@ -7,9 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Srotas — a self-contained personal news feed with an interest model that learns from free-text feedback. The end-to-end loop: **collect → score → feed → feedback → weight shift**.
 
 The authoritative source of truth is the spec in `spec/` (kiln format, agreed 2026-07-05, all proposals resolved). Read it before implementing anything; it supersedes this file where they disagree:
-- [spec/MISSION.md](spec/MISSION.md) — what Srotas is, goal/success criteria, the **binding** scope-boundaries table, principles, non-goals, relationship to Lumi, glossary, decision log (25 items).
+- [spec/MISSION.md](spec/MISSION.md) — what Srotas is, goal/success criteria, the **binding** scope-boundaries table, principles, non-goals, relationship to Lumi, glossary, decision log (26 items).
 - [spec/ARCHITECTURE.md](spec/ARCHITECTURE.md) — components, memory package, item store, collectors, scoring, feed, feedback, bootstrap, config, repo layout, **contracts that must not drift**, testing & CI.
-- [spec/ROADMAP.md](spec/ROADMAP.md) — version v0 with phases 0.1…0.7 (kiln format: Goal/Tasks/Out-of-scope/DoD, ✅🟡⬜ legend), one phase per release, plus the overall v0 DoD.
+- [spec/ROADMAP.md](spec/ROADMAP.md) — version v0 with phases 0.1…0.9 (kiln format: Goal/Tasks/Out-of-scope/DoD, ✅🟡⬜ legend), one phase per release, plus the overall v0 DoD. Phases 0.8–0.9 (Ukrainian translation + per-card language toggle) were added 2026-07-29 (MISSION decision 26).
 - [spec/vision.md](spec/vision.md) — the owner's 6-stage vision (this prototype = stage 1) and its mapping to the parent-concept stages.
 
 The spec is in English; the user communicates in Ukrainian — reply in Ukrainian where they do. Node `label`s in the model are Ukrainian (display data).
@@ -22,7 +22,7 @@ Pre-implementation: the repo contains the spec plus `spec/model-candidates.yaml`
 
 Stages 2–6 of the parent concept are deliberately excluded. **Do not create stubs, empty modules, "future-proof" abstractions, or config flags for them.** Concretely:
 
-- No LLM calls in scoring (Voyage embedding calls are allowed — they are not LLM calls). The only LLM calls are feedback classification (ARCHITECTURE.md §Feedback) and bootstrap extraction (ARCHITECTURE.md §Bootstrap).
+- No LLM calls in scoring (Voyage embedding calls are allowed — they are not LLM calls). LLM calls exist only outside scoring: feedback classification (ARCHITECTURE.md §Feedback), bootstrap extraction (ARCHITECTURE.md §Bootstrap), and feed translation (ARCHITECTURE.md §Translation, phase 0.8 — a display feature, decision 26).
 - No node fields beyond `id`, `label`, `keywords`, `weight` (no kind/tier/half_life/related, no graph, no decay).
 - No memory API endpoints, no push/notification mechanisms, no live coupling to the Lumi project — Lumi data enters only as file snapshots.
 - Exactly three collectors (Guardian, Wikipedia, Google News RSS) — no plugin framework for collectors.

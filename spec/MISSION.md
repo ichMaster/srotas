@@ -52,7 +52,7 @@ the events journal.
 | Planned for | What exactly | What NOT to do in the prototype |
 |---|---|---|
 | Stage 2 | Extractor over daily windows: segmentation, InterestEvent with quote-evidence, validation, derived returned/abandoned signals. Ontology: kind, tier, decay, typed edges, canonicalization, a "gardener" | Do not complicate the events schema; do not add kind / tier / half_life / related fields to nodes; do not build windows or segmentation in bootstrap |
-| Stage 3 | Two-stage scoring: LLM rerank, annotations, relevance explanations; active content search per node. Planned mechanism: **an agent in Claude Code that reads the Lili correspondence** to judge relevance | No LLM calls in scoring. The only LLM calls allowed in the prototype are feedback classification (ARCHITECTURE §Feedback) and bootstrap extraction (ARCHITECTURE §Bootstrap) |
+| Stage 3 | Two-stage scoring: LLM rerank, annotations, relevance explanations; active content search per node. Planned mechanism: **an agent in Claude Code that reads the Lili correspondence** to judge relevance | No LLM calls in **scoring**. The LLM calls allowed in the prototype are feedback classification (ARCHITECTURE §Feedback), bootstrap extraction (ARCHITECTURE §Bootstrap), and feed translation (ARCHITECTURE §Translation, added 2026-07-29 — decision 26); scoring itself stays LLM-free |
 | Stage 4 | Lumi integration: conversational feedback through Lili — **she proposes content herself** and digs into what was liked and what wasn't; a Curiosity need, an attention model, `/interests` `/findings` `/feedback` APIs | Do not build memory API endpoints; do not import anything from kiln; no push mechanisms or notifications |
 | Stage 5 | Collectors for RSS/blogs, HN + Reddit, arXiv, Telegram, **YouTube (the emphasis)** | Do not build a "universal pluggable collector framework" — exactly the three concrete modules in ARCHITECTURE §Collectors |
 | Stage 6 | Productionization: deploy, monitoring, weekly quality audit, simhash deduplication | Local single-process run; deduplication by URL only |
@@ -167,3 +167,22 @@ re-embedding.
 ### Reformat addendum — 2026-07-05
 
 25. Spec reshaped to the **kiln format**: `spec/MISSION.md` + `spec/ARCHITECTURE.md` + `spec/ROADMAP.md` + `spec/vision.md`, with the issue pipeline skills (`/generate-issues` → `/upload-issues` → `/execute-issues` → `/release-version`) ported from kiln under `.claude/skills/` (issue prefix `SROTAS-xxx`, per-phase releases `0.N.0`).
+
+### Feature addendum — 2026-07-29
+
+26. **Ukrainian translation in the feed — its own phases (v0.8 + v0.9).** Each
+    item's `title`, `summary`, and full `body` are translated to Ukrainian by a
+    **Haiku-class** call and cached in `items.sqlite`; the feed shows Ukrainian
+    **by default** and each card toggles to the original **individually**. This
+    is a **display** feature — a third sanctioned LLM use that never touches
+    scoring, so the "no LLM in scoring" principle stays intact — and it extends
+    the Item schema with `body` + `title_uk` / `summary_uk` / `body_uk` (all
+    nullable). It ships as **two appended roadmap phases, built in order after
+    0.7**: **v0.8** (full-body Guardian collection + the schema migration + the
+    cached Haiku translation seam + the `collect → embed → score → translate`
+    pass) and **v0.9** (the per-card language toggle in the web feed, layered on
+    the 0.4 feed). The Anthropic key already in config (for the 0.5 feedback
+    classifier) is reused — no new key. Full body comes from the Guardian API
+    itself (`show-fields=bodyText`), so no scraping; Wikipedia/GNews items may
+    leave `body` NULL. See ARCHITECTURE §Translation, §Item store, §Feed,
+    §Contracts; ROADMAP §0.8–0.9.

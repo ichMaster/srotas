@@ -8,7 +8,8 @@ forward. Legend: ✅ done · 🟡 partial · ⬜ planned.
 
 Grouping by feel: **0.1–0.3** the quiet backend (nothing visible in a browser;
 verified from the terminal), **0.4–0.5** the working product (feed + learning),
-**0.6–0.7** expansion (more sources, full bootstrap).
+**0.6–0.7** expansion (more sources, full bootstrap), **0.8–0.9** the reading
+experience (Ukrainian translation + a per-card language toggle).
 
 Every phase ships with pytest encoding its DoD; all paid APIs (Voyage,
 Anthropic) and collector network calls are **mocked** — never paid or networked
@@ -143,6 +144,51 @@ returned/abandoned signals (all stage 2).
 **DoD:** bootstrap runs over the real sources and yields a reviewed model of
 10–15 nodes (closes the last overall-DoD item); pytest green.
 
+### 0.8 Full text + Ukrainian translation (backend) — ⬜
+**Goal:** every item carries its full text and a cached Ukrainian translation.
+Added 2026-07-29 (MISSION §Scope, decision 26); a **display** feature, never in
+scoring. Depends on the Guardian collector (0.2) and the item store — **not** on
+the web feed.
+**Tasks:**
+- Guardian collector also requests the full body (`show-fields=…,bodyText`) →
+  the item's `body` (ARCHITECTURE §Collectors).
+- Migrate `items.sqlite`: add `body`, `title_uk`, `summary_uk`, `body_uk` (all
+  nullable); update the **Item shape contract test** to the new column set.
+- `core/translate.py` — one **Haiku-class** call (anthropic SDK) translates
+  `title` + `summary` + `body` → Ukrainian in a single request; cache in the
+  `*_uk` columns; only **untranslated** items are sent (cache reuse, like the
+  embedding cache). Anthropic key from config.
+- Extend the pass to **collect → embed → score → translate**; backfill-translate
+  the items already collected.
+- **Tests:** mocked Haiku translator → the three `*_uk` fields cached; only
+  untranslated rows are sent and a re-run makes **zero** translator calls; the
+  Guardian collector maps `bodyText` → `body`; the migrated schema matches the
+  Item contract.
+**Out of scope:** the feed toggle (0.9); full text for Wikipedia/GNews (their
+`body` stays NULL — those sources arrive at 0.6); on-the-fly translation
+(translation is cached). No new key — the Anthropic key already in config.
+**DoD:** a pass fills `body` and the `*_uk` columns for Guardian items;
+re-translation is free (cache); pytest green.
+
+### 0.9 Feed language toggle — ⬜
+**Goal:** the feed reads in Ukrainian, each item switchable to the original.
+Depends on the web feed (0.4) and the cached translations (0.8).
+**Tasks:**
+- The web feed renders each card in **Ukrainian by default** (`title_uk` /
+  `summary_uk`) with a per-card **toggle to the original** — an HTMX swap on the
+  card, independent of other cards (ARCHITECTURE §Feed).
+- An article view shows the item's `body`, translated or original per the same
+  toggle.
+- Fallback: an item with no cached translation (a GNews/Wikipedia item, or one
+  not yet translated) shows the original and the toggle is inactive.
+- **Tests:** a card renders the `*_uk` fields by default; the toggle swaps one
+  card to the original without touching the others; an untranslated item falls
+  back to the original.
+**Out of scope:** a global language switch (per-card only, decision 26);
+translating on demand (0.8 caches at collection).
+**DoD:** `uvicorn web.app:app` serves the feed in Ukrainian; each card toggles
+to the original independently; pytest green.
+
 ## Overall Definition of Done (v0)
 
 - The cycle runs locally end to end: scheduled collection, the feed opens,
@@ -153,6 +199,8 @@ returned/abandoned signals (all stage 2).
 - Bootstrap has run over real sources and the model has 10–15 confirmed nodes.
   *(Closed by 0.7; until then the cycle lives on the initial 14-node model
   from Lumi facts.)*
+- The feed reads in Ukrainian, with each item switchable to the original.
+  *(Closed by 0.8–0.9; the core learning cycle above stands without it.)*
 
 ## Beyond v0
 
