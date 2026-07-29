@@ -1,6 +1,29 @@
 Srotas — Release Notes
 ======================
 
+Version 0.4.0 (2026-07-29)
+---------------------------
+Phase v0.4 — Web feed (ROADMAP §0.4).
+The scored items are now usable in a browser, and the app refreshes itself.
+
+- web/app.py: FastAPI + HTMX feed bound to 127.0.0.1 only; GET / reads the scored
+  items (core/items.read_feed) and renders them as cards grouped by day
+  (published_at, fallback first_seen) with fresh days on top and descending score
+  within a day. Each card shows title link, source, date, score, the top_node's
+  Ukrainian label, and a feedback field that renders but posts nowhere (0.5).
+- Clickable node-tag filter: GET /?node=<id> narrows the feed to that node; each
+  card's tag links to its own filter and an "всі" link resets. Filtering lives in
+  the card tags — no separate panel.
+- APScheduler inside the process: a BackgroundScheduler started in the FastAPI
+  lifespan runs the collect -> embed -> score pass every collection_interval_hours
+  (4 default, from config), in a worker thread; one process, no separate worker.
+- Dependencies added: fastapi, uvicorn, jinja2, apscheduler. 78 tests green, ruff
+  clean; routes via the TestClient, the scheduler job with the pass mocked — no
+  paid/network call in CI.
+
+No new contracts. Translation and the language toggle are NOT here — they are
+phases v0.8/v0.9 (MISSION decision 26).
+
 Version 0.3.0 (2026-07-29)
 ---------------------------
 Phase v0.3 — Scoring + CLI preview (ROADMAP §0.3).
