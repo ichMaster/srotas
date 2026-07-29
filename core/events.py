@@ -24,6 +24,9 @@ from pathlib import Path
 # The only kinds the journal accepts. Do not extend (MISSION §Scope, stage 2).
 KINDS: tuple[str, ...] = ("bootstrap", "feedback", "weight_update")
 
+# Default location of the event journal within the memory package.
+DEFAULT_EVENTS_DB = Path("memory/events.sqlite")
+
 # The five columns are the contract; the CHECK pins the allowed kinds in the DB.
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS events (

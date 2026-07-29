@@ -37,6 +37,10 @@ class Config:
     # v0.5 — Anthropic key for the feedback classifier; reused by translation
     # in phase 0.8 (ARCHITECTURE §Configuration).
     anthropic_api_key: str = ""
+    # v0.5 — the weight deltas a like/dislike applies to a card's top_node,
+    # clamped to [0.05, 1.0] before the write (ARCHITECTURE §Feedback).
+    feedback_like_delta: float = 0.05
+    feedback_dislike_delta: float = -0.07
 
 
 def load_config(path: str | Path = DEFAULT_CONFIG_PATH) -> Config:
@@ -85,10 +89,22 @@ def load_config(path: str | Path = DEFAULT_CONFIG_PATH) -> Config:
         anthropic_tbl.get("api_key", "") if isinstance(anthropic_tbl, dict) else ""
     )
 
+    feedback_tbl = data.get("feedback")
+    like_delta = (
+        feedback_tbl.get("like_delta", 0.05) if isinstance(feedback_tbl, dict) else 0.05
+    )
+    dislike_delta = (
+        feedback_tbl.get("dislike_delta", -0.07)
+        if isinstance(feedback_tbl, dict)
+        else -0.07
+    )
+
     return Config(
         guardian_api_key=guardian_key,
         voyage_api_key=voyage_key,
         cosine_threshold=float(threshold),
         collection_interval_hours=float(interval),
         anthropic_api_key=anthropic_key,
+        feedback_like_delta=float(like_delta),
+        feedback_dislike_delta=float(dislike_delta),
     )

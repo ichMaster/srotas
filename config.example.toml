@@ -28,3 +28,10 @@ interval_hours = 4
 # reused by feed translation in phase 0.8. Request one at https://console.anthropic.com/
 [anthropic]
 api_key = "your-anthropic-api-key"
+
+# v0.5 — the weight deltas a like/dislike applies to a card's top_node,
+# clamped to [0.05, 1.0]. The asymmetry is deliberate — a negative signal is
+# more informative and guards against weight inflation.
+[feedback]
+like_delta = 0.05
+dislike_delta = -0.07
