@@ -64,3 +64,35 @@ def test_empty_feed_renders(tmp_path, monkeypatch):
 
 def test_app_binds_to_localhost_only():
     assert webapp.HOST == "127.0.0.1"
+
+
+# --- SROTAS-014: clickable node-tag filter ---
+
+
+def test_node_filter_narrows_and_resets(tmp_path, monkeypatch):
+    db = tmp_path / "items.sqlite"
+    _seed(db, "u-ai", 0.50, "ai-systems-development", "2026-07-29", "AI item")
+    _seed(db, "u-sf", 0.40, "science-fiction-literature", "2026-07-29", "SciFi item")
+    client = _client(db, monkeypatch)
+
+    filtered = client.get("/?node=ai-systems-development").text
+    assert "AI item" in filtered
+    assert "SciFi item" not in filtered  # narrowed to one node
+
+    full = client.get("/").text  # reset shows all
+    assert "AI item" in full and "SciFi item" in full
+
+
+def test_card_tag_links_to_its_node_filter(tmp_path, monkeypatch):
+    db = tmp_path / "items.sqlite"
+    _seed(db, "u-ai", 0.50, "ai-systems-development", "2026-07-29", "AI item")
+    body = _client(db, monkeypatch).get("/").text
+    assert 'href="/?node=ai-systems-development"' in body
+
+
+def test_all_reset_link_only_when_filtered(tmp_path, monkeypatch):
+    db = tmp_path / "items.sqlite"
+    _seed(db, "u-ai", 0.50, "ai-systems-development", "2026-07-29", "AI item")
+    client = _client(db, monkeypatch)
+    assert ">всі<" in client.get("/?node=ai-systems-development").text
+    assert ">всі<" not in client.get("/").text

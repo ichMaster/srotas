@@ -1,5 +1,5 @@
 <article class="card">
-  <span class="tag">{{ labels.get(item.top_node, item.top_node) }}</span>
+  <a class="tag" href="/?node={{ item.top_node }}">{{ labels.get(item.top_node, item.top_node) }}</a>
   <h3><a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a></h3>
   <p class="meta">{{ item.source }} · {{ (item.published_at or item.first_seen)[:10] }} · score {{ '%.3f'|format(item.score) }}</p>
   {% if item.summary %}<p class="summary">{{ item.summary }}</p>{% endif %}

@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Query, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
@@ -52,11 +52,17 @@ def build_days(
 
 
 @app.get("/", response_class=HTMLResponse)
-def feed(request: Request):
-    labels = {node.id: node.label for node in model.load_model()}
-    days = build_days(items.read_feed(DB_PATH))
+def feed(request: Request, node: str | None = Query(default=None)):
+    # Filtering lives in the card tags (ARCHITECTURE §Feed): ?node=<id> narrows
+    # the feed to that node; "всі" / no param resets.
+    active = node if node and node != "всі" else None
+    feed_items = items.read_feed(DB_PATH)
+    if active:
+        feed_items = [it for it in feed_items if it.top_node == active]
+    labels = {n.id: n.label for n in model.load_model()}
+    days = build_days(feed_items)
     return _TEMPLATES.TemplateResponse(
-        request, "feed.html", {"days": days, "labels": labels, "node": None}
+        request, "feed.html", {"days": days, "labels": labels, "node": active}
     )
 
 
