@@ -34,6 +34,9 @@ class Config:
     cosine_threshold: float = 0.35
     # v0.4 — how often the in-process scheduler runs collect → embed → score.
     collection_interval_hours: float = 4.0
+    # v0.5 — Anthropic key for the feedback classifier; reused by translation
+    # in phase 0.8 (ARCHITECTURE §Configuration).
+    anthropic_api_key: str = ""
 
 
 def load_config(path: str | Path = DEFAULT_CONFIG_PATH) -> Config:
@@ -77,9 +80,15 @@ def load_config(path: str | Path = DEFAULT_CONFIG_PATH) -> Config:
         else 4.0
     )
 
+    anthropic_tbl = data.get("anthropic")
+    anthropic_key = (
+        anthropic_tbl.get("api_key", "") if isinstance(anthropic_tbl, dict) else ""
+    )
+
     return Config(
         guardian_api_key=guardian_key,
         voyage_api_key=voyage_key,
         cosine_threshold=float(threshold),
         collection_interval_hours=float(interval),
+        anthropic_api_key=anthropic_key,
     )

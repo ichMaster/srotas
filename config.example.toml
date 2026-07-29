@@ -23,3 +23,8 @@ threshold = 0.35
 # v0.4 — how often the in-process scheduler runs collect → embed → score.
 [schedule]
 interval_hours = 4
+
+# v0.5 — the Anthropic key for the feedback classifier (Haiku-class model);
+# reused by feed translation in phase 0.8. Request one at https://console.anthropic.com/
+[anthropic]
+api_key = "your-anthropic-api-key"

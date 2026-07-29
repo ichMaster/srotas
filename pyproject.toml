@@ -19,6 +19,8 @@ dependencies = [
     "jinja2>=3.1",
     # v0.4 — the in-process scheduler (collect → embed → score every 4h)
     "apscheduler>=3.10,<4",
+    # v0.5 — the feedback classifier (Haiku-class model)
+    "anthropic>=0.40",
 ]
 
 [project.optional-dependencies]
