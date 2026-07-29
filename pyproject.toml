@@ -21,6 +21,8 @@ dependencies = [
     "apscheduler>=3.10,<4",
     # v0.5 — the feedback classifier (Haiku-class model)
     "anthropic>=0.40",
+    # v0.5 — POST /feedback form parsing (Starlette requires this for Form())
+    "python-multipart>=0.0.9",
 ]
 
 [project.optional-dependencies]
