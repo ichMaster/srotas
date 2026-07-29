@@ -19,3 +19,7 @@ api_key = "your-voyage-api-key"
 # it only decides whether an item is eligible for a node at all.
 [scoring]
 threshold = 0.35
+
+# v0.4 — how often the in-process scheduler runs collect → embed → score.
+[schedule]
+interval_hours = 4

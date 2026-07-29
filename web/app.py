@@ -13,13 +13,15 @@ model-mutating POST at 0.5 and must never listen on an external interface.
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from pathlib import Path
 
+from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from core import items, model
+from core import config, items, model, pipeline
 
 # Never an external interface (ARCHITECTURE §Feed).
 HOST = "127.0.0.1"
@@ -29,7 +31,46 @@ PORT = 8000
 DB_PATH: str | Path = items.DEFAULT_ITEMS_DB
 
 _TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
-app = FastAPI(title="Srotas")
+
+# The scheduler job id; also its handle so tests can inspect it.
+_JOB_ID = "collect-embed-score"
+
+
+def run_collection_pass() -> None:
+    """The scheduled pass: **collect → embed → score** (translation is 0.8, not
+    here). Runs in a scheduler worker thread so it never blocks the web loop."""
+    pipeline.run_pass(db_path=DB_PATH)
+
+
+def build_scheduler(interval_hours: float) -> BackgroundScheduler:
+    """A scheduler carrying the collect→embed→score job on the given interval."""
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(
+        run_collection_pass, "interval", hours=interval_hours, id=_JOB_ID
+    )
+    return scheduler
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Start the in-process scheduler on startup; stop it on shutdown. A missing
+    config.toml degrades gracefully — the feed still serves, just without the
+    scheduler."""
+    scheduler = None
+    try:
+        cfg = config.load_config()
+        scheduler = build_scheduler(cfg.collection_interval_hours)
+        scheduler.start()
+    except FileNotFoundError:
+        pass
+    try:
+        yield
+    finally:
+        if scheduler is not None:
+            scheduler.shutdown(wait=False)
+
+
+app = FastAPI(title="Srotas", lifespan=lifespan)
 
 
 def _feed_day(item: items.ScoredItem) -> str:

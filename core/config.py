@@ -32,6 +32,8 @@ class Config:
     # v0.3 — the relevance gate on the pure cosine (calibrated via the CLI
     # preview); it never applies to the weighted score.
     cosine_threshold: float = 0.35
+    # v0.4 — how often the in-process scheduler runs collect → embed → score.
+    collection_interval_hours: float = 4.0
 
 
 def load_config(path: str | Path = DEFAULT_CONFIG_PATH) -> Config:
@@ -68,8 +70,16 @@ def load_config(path: str | Path = DEFAULT_CONFIG_PATH) -> Config:
         scoring_tbl.get("threshold", 0.35) if isinstance(scoring_tbl, dict) else 0.35
     )
 
+    schedule_tbl = data.get("schedule")
+    interval = (
+        schedule_tbl.get("interval_hours", 4.0)
+        if isinstance(schedule_tbl, dict)
+        else 4.0
+    )
+
     return Config(
         guardian_api_key=guardian_key,
         voyage_api_key=voyage_key,
         cosine_threshold=float(threshold),
+        collection_interval_hours=float(interval),
     )
