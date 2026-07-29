@@ -218,6 +218,47 @@ def set_score(
         conn.commit()
 
 
+@dataclass(frozen=True)
+class ScoredItem:
+    """A scored item with the fields a feed card needs (SROTAS-013)."""
+
+    url: str
+    source: str
+    title: str
+    summary: str | None
+    published_at: str | None
+    first_seen: str
+    score: float
+    top_node: str
+
+
+def read_feed(db_path: str | Path = DEFAULT_ITEMS_DB) -> list[ScoredItem]:
+    """Every scored item (``top_node`` set), highest score first.
+
+    The web layer groups these into days (published_at, fallback first_seen) with
+    fresh days on top; the global score-desc order keeps within-day order right.
+    """
+    with _connect(db_path) as conn:
+        rows = conn.execute(
+            "SELECT url, source, title, summary, published_at, first_seen, "
+            "score, top_node FROM items WHERE top_node IS NOT NULL "
+            "ORDER BY score DESC, url"
+        ).fetchall()
+    return [
+        ScoredItem(
+            url=row["url"],
+            source=row["source"],
+            title=row["title"],
+            summary=row["summary"],
+            published_at=row["published_at"],
+            first_seen=row["first_seen"],
+            score=row["score"],
+            top_node=row["top_node"],
+        )
+        for row in rows
+    ]
+
+
 def read_top_scored(
     db_path: str | Path = DEFAULT_ITEMS_DB, limit: int = 20
 ) -> list[tuple[str, str, str, float, str]]:
