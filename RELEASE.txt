@@ -1,6 +1,32 @@
 Srotas — Release Notes
 ======================
 
+Version 0.3.0 (2026-07-29)
+---------------------------
+Phase v0.3 — Scoring + CLI preview (ROADMAP §0.3).
+Items now rank against the interest model.
+
+- core/embeddings.py: Voyage client (voyage-3) over httpx — input_type=document
+  for items, query for centroids; no LLM in the scoring path. Item vectors cached
+  as float32 BLOBs in items.sqlite; only uncached rows are embedded.
+- core/scoring.py: node centroids computed on the fly (no cache); the relevance
+  gate on the PURE cosine (0.35, config) — weight ranks but never gates; score =
+  max over eligible nodes (cosine × weight), argmax stored as top_node.
+- core/pipeline.py: the collect -> embed -> score pass; backfill of the NULL
+  embeddings left by 0.2; idempotent (a re-run re-scores from cache for free).
+- CLI preview: python -m core.scoring --preview [--threshold X] prints the top-N
+  by score with top_node/cosine, so the 0.35 gate is calibrated by eye.
+- VOYAGE_API_KEY + the scoring threshold added to config. 66 tests green, ruff
+  clean; all Voyage HTTP mocked, no paid/network call in CI.
+
+Also in this release (tooling + planning, no runtime code): the run-phase skill
+(chains generate -> upload -> execute for one phase); and a spec addition —
+Ukrainian translation planned as phases v0.8 (backend) + v0.9 (feed toggle),
+MISSION decision 26.
+
+Contracts pinned this release: the embedder seam (voyage-3, document/query, key
+from config, no LLM) and the cosine-only relevance gate, each with a contract test.
+
 Version 0.2.0 (2026-07-29)
 ---------------------------
 Phase v0.2 — Guardian collector + items.sqlite (ROADMAP §0.2).
