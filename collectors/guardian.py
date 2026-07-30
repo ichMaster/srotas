@@ -16,11 +16,11 @@ HTTP is **mocked** in tests; never a live/paid call in CI.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass
 from pathlib import Path
 
 import httpx
 
+from collectors.base import CollectSummary
 from core import config, items, model
 from core.model import Node
 
@@ -29,15 +29,7 @@ GUARDIAN_SEARCH_URL = "https://content.guardianapis.com/search"
 PAGE_SIZE = 50
 _TIMEOUT = httpx.Timeout(30.0)
 
-
-@dataclass(frozen=True)
-class CollectSummary:
-    """Counts from one collect run — ``fetched`` includes cross-node repeats."""
-
-    nodes: int
-    fetched: int
-    new: int
-    deduped: int
+__all__ = ["CollectSummary", "build_query", "collect", "collect_node", "normalize"]
 
 
 def build_query(node: Node) -> str:
