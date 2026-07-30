@@ -81,6 +81,20 @@ def test_non_json_reply_raises():
         feedback.classify("x", "T", "node-a", "KEY", call=_caller("not json at all"))
 
 
+def test_json_wrapped_in_markdown_code_fence_is_parsed():
+    """Haiku often wraps JSON in ```json ... ``` even when told not to — real
+    observed behavior; the classifier must strip it, not choke on it."""
+    reply = '```json\n{"reaction": "like", "topic_hint": null}\n```'
+    result = feedback.classify("x", "T", "node-a", "KEY", call=_caller(reply))
+    assert result.reaction == "like"
+
+
+def test_json_wrapped_in_plain_code_fence_is_parsed():
+    reply = '```\n{"reaction": "dislike"}\n```'
+    result = feedback.classify("x", "T", "node-a", "KEY", call=_caller(reply))
+    assert result.reaction == "dislike"
+
+
 def test_unknown_reaction_raises():
     reply = json.dumps({"reaction": "love-it-maybe"})
     with pytest.raises(ValueError, match="unknown reaction"):

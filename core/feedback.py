@@ -21,6 +21,7 @@ All Anthropic HTTP is **mocked** in tests — never a paid or live call in CI.
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -29,6 +30,9 @@ from pathlib import Path
 import anthropic
 
 from core import events, model, pending_topics
+
+# Models often wrap JSON in a markdown code fence even when told not to.
+_FENCE_RE = re.compile(r"^```(?:json)?\s*\n?(.*?)\n?```$", re.DOTALL)
 
 MODEL = "claude-haiku-4-5-20251001"
 REACTIONS = ("like", "dislike", "new_topic")
@@ -74,6 +78,13 @@ def _call_haiku(prompt: str, api_key: str) -> str:
     return response.content[0].text
 
 
+def _strip_code_fence(raw: str) -> str:
+    """Strip a ```json ... ``` (or plain ``` ... ```) wrapper, if present."""
+    stripped = raw.strip()
+    m = _FENCE_RE.match(stripped)
+    return m.group(1).strip() if m else stripped
+
+
 def classify(
     text: str,
     title: str,
@@ -91,7 +102,7 @@ def classify(
     raw = call(_prompt(text, title, top_node), api_key)
 
     try:
-        data = json.loads(raw)
+        data = json.loads(_strip_code_fence(raw))
     except (json.JSONDecodeError, TypeError) as exc:
         raise ValueError(f"classifier returned non-JSON output: {raw!r}") from exc
 
