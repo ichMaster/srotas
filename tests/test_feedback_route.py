@@ -4,6 +4,8 @@ FastAPI TestClient; the classifier, scorer, and config are injected/monkeypatche
 so nothing paid or networked ever runs.
 """
 
+import re
+
 from core import config, feedback, items, model, pending_topics
 from web import app as webapp
 
@@ -156,7 +158,24 @@ def test_card_feedback_field_is_no_longer_inert(tmp_path, monkeypatch):
     db, _, _, _ = _setup(tmp_path, monkeypatch)
     body = _client().get("/").text
     assert 'hx-post="/feedback"' in body
-    assert "disabled" not in body
+    # disabled only for the duration of an in-flight request (hx-disabled-elt),
+    # not statically inert — check the actual <input> tag, not the page as a
+    # whole (the CSS has an :disabled selector and hx-disabled-elt's own name
+    # both legitimately contain the substring "disabled").
+    text_input = re.search(r'<input[^>]*name="text"[^>]*>', body).group(0)
+    assert "disabled" not in text_input
+
+
+def test_form_shows_a_loading_state_while_the_request_is_in_flight(
+    tmp_path, monkeypatch
+):
+    """Enter should visibly do something while waiting on the (slow) Haiku
+    call: the field disables and its color changes via htmx's htmx-request
+    class, wired through hx-disabled-elt."""
+    db, _, _, _ = _setup(tmp_path, monkeypatch)
+    body = _client().get("/").text
+    assert 'hx-disabled-elt="find input[type=text]"' in body
+    assert ".feedback.htmx-request input" in body  # the color-change CSS rule
 
 
 # --- inline acknowledgement (own-card swap, not a full re-render) ---

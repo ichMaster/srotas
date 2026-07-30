@@ -7,12 +7,24 @@
   {% if r %}
     {% include "_ack.html" %}
   {% else %}
-    <form class="feedback" hx-post="/feedback" hx-target="this" hx-swap="outerHTML">
+    <form
+      class="feedback"
+      hx-post="/feedback"
+      hx-target="this"
+      hx-swap="outerHTML"
+      hx-disabled-elt="find input[type=text]"
+    >
       <input type="hidden" name="url" value="{{ item.url }}">
       <input type="hidden" name="title" value="{{ item.title }}">
       <input type="hidden" name="top_node" value="{{ item.top_node }}">
       <input type="hidden" name="node" value="{{ node or '' }}">
-      <input type="text" name="text" placeholder="ваша реакція…" required>
+      <input
+        type="text"
+        name="text"
+        placeholder="ваша реакція…"
+        autocomplete="off"
+        required
+      >
     </form>
   {% endif %}
 </article>

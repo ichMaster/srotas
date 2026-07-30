@@ -20,7 +20,9 @@
     .card h3 a:hover{text-decoration:underline}
     .meta{color:#90a29e;font-size:.8rem;margin:.15rem 0 .4rem;font-variant-numeric:tabular-nums}
     .summary{color:#c4d0cd;font-size:.92rem;margin:.3rem 0 .6rem}
-    .feedback input{width:100%;padding:.45rem;border-radius:8px;border:1px solid #223331;background:#0e1413;color:#e9f0ee;box-sizing:border-box}
+    .feedback input{width:100%;padding:.45rem;border-radius:8px;border:1px solid #223331;background:#0e1413;color:#e9f0ee;box-sizing:border-box;transition:border-color .15s ease,background-color .15s ease}
+    .feedback.htmx-request input{border-color:#34d6c0;background:#132420;cursor:wait}
+    .feedback input:disabled{opacity:.6;cursor:wait}
     .empty{color:#90a29e}
   </style>
 </head>
