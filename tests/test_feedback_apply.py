@@ -116,6 +116,25 @@ def test_custom_deltas_from_config(tmp_path):
     assert abs(new_weight - 0.80) < 1e-9
 
 
+def test_weight_stays_clean_across_repeated_reactions(tmp_path):
+    """Regression: naive float addition across successive reactions produces
+    noise like 0.8500000000000001 in the human-edited model.yaml; the result
+    (and what's written to disk) must round-trip to a clean 2-decimal value."""
+    m = _model(tmp_path)
+    db = tmp_path / "events.sqlite"
+
+    feedback.apply_reaction(
+        "like", "alpha", "https://ex.com/a", "x", model_path=m, events_db=db
+    )
+    second = feedback.apply_reaction(
+        "like", "alpha", "https://ex.com/a", "x", model_path=m, events_db=db
+    )
+    assert second == 0.7  # 0.60 + 0.05 + 0.05, exactly — no float tail
+    on_disk = {n.id: n.weight for n in model.load_model(m)}
+    assert on_disk["alpha"] == 0.7
+    assert "0.7000000" not in m.read_text(encoding="utf-8")
+
+
 def test_new_topic_never_touches_model_yaml(tmp_path):
     m = _model(tmp_path)
     db = tmp_path / "events.sqlite"

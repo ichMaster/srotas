@@ -182,7 +182,11 @@ def apply_reaction(
     if node_id not in nodes:
         raise KeyError(f"no node with id {node_id!r} in {model_path}")
     old_weight = nodes[node_id].weight
-    new_weight = min(model.WEIGHT_MAX, max(model.WEIGHT_MIN, old_weight + delta))
+    raw_weight = min(model.WEIGHT_MAX, max(model.WEIGHT_MIN, old_weight + delta))
+    # Round to the deltas' own precision (2 decimals) — plain float addition
+    # over repeated reactions otherwise drifts into noise like 0.8500000000000001
+    # in the human-edited model.yaml.
+    new_weight = round(raw_weight, 2)
     model.set_weight(model_path, node_id, new_weight)
 
     events.append_event(

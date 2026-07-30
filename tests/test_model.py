@@ -95,3 +95,26 @@ def test_set_weight_unknown_node_raises(tmp_path):
     path.write_text(FIXTURE_WITH_COMMENT, encoding="utf-8")
     with pytest.raises(KeyError):
         model.set_weight(path, "does-not-exist", 0.5)
+
+
+def test_set_weight_does_not_wrap_long_keyword_lines(tmp_path):
+    """Regression: ruamel's default 80-col width used to reflow a long
+    `keywords:` flow sequence onto multiple lines on a weight-only write, even
+    though only the weight scalar is meant to change."""
+    long_line = (
+        "- id: alpha\n"
+        '  label: "Альфа"\n'
+        "  keywords: [large language models, AI agents, machine learning "
+        "architecture, neural networks, prompt engineering, model tuning, "
+        "LLM applications]\n"
+        "  weight: 0.60\n"
+    )
+    path = tmp_path / "model.yaml"
+    path.write_text(long_line, encoding="utf-8")
+
+    model.set_weight(path, "alpha", 0.65)
+
+    text = path.read_text(encoding="utf-8")
+    keywords_line = next(ln for ln in text.splitlines() if "keywords:" in ln)
+    assert keywords_line.rstrip().endswith("]")  # the whole list stayed on one line
+    assert "weight: 0.65" in text

@@ -44,6 +44,10 @@ def _yaml() -> YAML:
     """A round-trip YAML that preserves comments, quotes, and flow style."""
     yaml = YAML()  # round-trip mode is the default
     yaml.preserve_quotes = True
+    # ruamel's default width (80) wraps long flow sequences (e.g. a node's
+    # keywords) onto multiple lines on write, even though only `weight` is
+    # meant to change — a large width keeps every untouched line byte-for-byte.
+    yaml.width = 100000
     return yaml
 
 
