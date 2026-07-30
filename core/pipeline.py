@@ -1,4 +1,4 @@
-"""SROTAS-011 — the collect → embed → score pass.
+"""SROTAS-011/021 — the collect → embed → score pass.
 
 Bridges phase 0.2's NULL embeddings into the scored world and establishes the
 ordered pass that every collection cycle runs (ARCHITECTURE §Scoring). Two
@@ -8,11 +8,14 @@ callables:
   still NULL (only those — the cache is reused, never recomputed), then run the
   scoring pass. Idempotent: a second call embeds nothing and re-scores from the
   cached vectors for free.
-- :func:`run_pass` — the whole sequence **collect → embed new → score**, wiring
-  the Guardian collector, the embedder, and the scorer over ``config``/``model``.
+- :func:`run_pass` — the whole sequence **collect (Guardian + Wikipedia +
+  GNews) → embed new → score**, wiring all three collectors, the embedder, and
+  the scorer over ``config``/``model``. All three write into the same
+  ``items.sqlite``; URL-PK upsert gives cross-source dedup for free — the same
+  article surfaced by two sources yields one row (ARCHITECTURE §Collectors).
 
 There is **no scheduler** here — driving this every 4 hours is phase 0.4. All
-paid/network seams (Guardian HTTP, Voyage embeddings) are **mocked** in tests.
+paid/network seams (collector HTTP, Voyage embeddings) are **mocked** in tests.
 """
 
 from __future__ import annotations
@@ -20,7 +23,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from collectors import guardian
+from collectors import gnews, guardian, wikipedia
+from collectors.base import CollectSummary
 from core import config, embeddings, items, model, scoring
 
 
@@ -28,7 +32,7 @@ from core import config, embeddings, items, model, scoring
 class PassSummary:
     """Counts from one collect → embed → score pass."""
 
-    collected: guardian.CollectSummary
+    collected: dict[str, CollectSummary]
     embedded: int
     scored: int
 
@@ -64,19 +68,26 @@ def run_pass(
     model_path: str | Path = model.DEFAULT_MODEL_PATH,
     db_path: str | Path = items.DEFAULT_ITEMS_DB,
     guardian_client=None,
+    wikipedia_client=None,
+    gnews_client=None,
     embed_fn: embeddings.Embedder | None = None,
 ) -> PassSummary:
-    """The single callable pass: collect (Guardian) → embed new → score.
+    """The single callable pass: collect (Guardian + Wikipedia + GNews) →
+    embed new → score.
 
-    Loads the key + threshold from config and the nodes from the model. Injectable
-    seams (a Guardian client, an embedder) let tests drive the whole pass without
-    the network; a real run creates them from config.
+    Loads the key + threshold from config and the nodes from the model.
+    Injectable seams (one client per collector, an embedder) let tests drive
+    the whole pass without the network; a real run creates them from config.
     """
     cfg = config.load_config(config_path)
     nodes = model.load_model(model_path)
-    collected = guardian.collect(
-        nodes, cfg.guardian_api_key, db_path, client=guardian_client
-    )
+    collected = {
+        "guardian": guardian.collect(
+            nodes, cfg.guardian_api_key, db_path, client=guardian_client
+        ),
+        "wikipedia": wikipedia.collect(nodes, db_path, client=wikipedia_client),
+        "gnews": gnews.collect(nodes, db_path, client=gnews_client),
+    }
     embedded, scored = embed_and_score(
         db_path,
         nodes,
