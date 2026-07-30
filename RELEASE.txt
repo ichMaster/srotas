@@ -1,6 +1,29 @@
 Srotas — Release Notes
 ======================
 
+Version 0.5.0 (2026-07-30)
+---------------------------
+Phase v0.5 — Feedback loop, end to end (ROADMAP §0.5).
+Typing a reaction on a card now closes the whole loop.
+
+- core/feedback.py: a Haiku-class classifier takes the card's context
+  (title + top_node) alongside the user's text -> {reaction, topic_hint};
+  robust to a reply wrapped in a markdown code fence.
+- apply_reaction(): like/dislike shift the card's top_node weight (+0.05/-0.07,
+  clamped to [0.05, 1.0], rounded to 2 decimals), a ruamel round-trip write with
+  no side-effect formatting drift; new_topic queues in
+  memory/pending_topics.yaml -- a node is never auto-created.
+- Every change is journaled in events.sqlite with the original text and the
+  item URL.
+- POST /feedback: classify -> apply -> re-score (free, cached embeddings) ->
+  an inline acknowledgement on the card (reaction + weight change) that is
+  persisted in events.sqlite and survives a reload or a node-filter
+  navigation.
+- A visible loading state on the field while a request is in flight.
+- Fixed: floating-point noise and long keyword-line rewrapping on a weight
+  write.
+- 112 tests green, ruff clean; all Anthropic HTTP mocked in tests.
+
 Version 0.4.0 (2026-07-29)
 ---------------------------
 Phase v0.4 — Web feed (ROADMAP §0.4).
