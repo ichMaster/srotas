@@ -23,6 +23,8 @@ dependencies = [
     "anthropic>=0.40",
     # v0.5 — POST /feedback form parsing (Starlette requires this for Form())
     "python-multipart>=0.0.9",
+    # v0.6 — RSS/Atom parsing for the Google News collector
+    "feedparser>=6.0",
 ]
 
 [project.optional-dependencies]
