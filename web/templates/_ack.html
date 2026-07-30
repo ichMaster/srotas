@@ -1,0 +1,10 @@
+<p class="ack">
+  {% if r.reaction == "like" %}👍 Вподобано
+  {% elif r.reaction == "dislike" %}👎 Не сподобалось
+  {% else %}💡 Нову тему додано в чергу на розгляд
+  {% endif -%}
+  {% if r.old_weight is not none and r.new_weight is not none %}
+    · вага {{ '%.2f'|format(r.old_weight) }} → {{ '%.2f'|format(r.new_weight) }}
+  {% endif %}
+  · <a href="{{ '/?node=' + node if node else '/' }}">оновити фід →</a>
+</p>

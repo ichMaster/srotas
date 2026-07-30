@@ -118,8 +118,13 @@ def _render_feed(request: Request, node: str | None) -> HTMLResponse:
         feed_items = [it for it in feed_items if it.top_node == active]
     labels = {n.id: n.label for n in model.load_model(MODEL_PATH)}
     days = build_days(feed_items)
+    # Already-reacted cards show a persisted ack instead of the form — derived
+    # from the journal, so it survives a reload or a filter navigation.
+    reacted = events.latest_feedback_by_url(EVENTS_DB)
     return _TEMPLATES.TemplateResponse(
-        request, "feed.html", {"days": days, "labels": labels, "node": active}
+        request,
+        "feed.html",
+        {"days": days, "labels": labels, "node": active, "reacted": reacted},
     )
 
 
@@ -138,7 +143,9 @@ def post_feedback(
     node: str = Form(default=""),
 ):
     """Classify a card's reaction, apply it, re-score on a weight change, and
-    re-render the feed (ARCHITECTURE §Feedback)."""
+    reply with an inline acknowledgement swapped into the card in place
+    (ARCHITECTURE §Feedback) — the reaction + weight change is visible right
+    where the reader typed it, without reordering the rest of the feed."""
     cfg = config.load_config()
     classification = feedback.classify(text, title, top_node, cfg.anthropic_api_key)
 
@@ -153,8 +160,11 @@ def post_feedback(
             events_db=EVENTS_DB,
             pending_topics_path=PENDING_TOPICS_PATH,
         )
+        result = {"reaction": "new_topic", "old_weight": None, "new_weight": None}
     else:
-        feedback.apply_reaction(
+        nodes = {n.id: n for n in model.load_model(MODEL_PATH)}
+        old_weight = nodes[top_node].weight
+        new_weight = feedback.apply_reaction(
             classification.reaction,
             top_node,
             url,
@@ -165,16 +175,23 @@ def post_feedback(
             like_delta=cfg.feedback_like_delta,
             dislike_delta=cfg.feedback_dislike_delta,
         )
-        # A weight just changed — re-score so the feed reorders immediately.
+        # A weight just changed — re-score so the next feed load reflects it.
         # Free: item embeddings are cached (ARCHITECTURE §Scoring).
         scoring.score_items(
             DB_PATH,
-            model.load_model(MODEL_PATH),
+            list(nodes.values()),
             threshold=cfg.cosine_threshold,
             api_key=cfg.voyage_api_key,
         )
+        result = {
+            "reaction": classification.reaction,
+            "old_weight": old_weight,
+            "new_weight": new_weight,
+        }
 
-    return _render_feed(request, node or None)
+    return _TEMPLATES.TemplateResponse(
+        request, "_ack.html", {"r": result, "node": node or None}
+    )
 
 
 def main() -> None:  # pragma: no cover

@@ -3,11 +3,16 @@
   <h3><a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a></h3>
   <p class="meta">{{ item.source }} · {{ (item.published_at or item.first_seen)[:10] }} · score {{ '%.3f'|format(item.score) }}</p>
   {% if item.summary %}<p class="summary">{{ item.summary }}</p>{% endif %}
-  <form class="feedback" hx-post="/feedback" hx-target="body" hx-swap="innerHTML">
-    <input type="hidden" name="url" value="{{ item.url }}">
-    <input type="hidden" name="title" value="{{ item.title }}">
-    <input type="hidden" name="top_node" value="{{ item.top_node }}">
-    <input type="hidden" name="node" value="{{ node or '' }}">
-    <input type="text" name="text" placeholder="ваша реакція…" required>
-  </form>
+  {% set r = reacted.get(item.url) %}
+  {% if r %}
+    {% include "_ack.html" %}
+  {% else %}
+    <form class="feedback" hx-post="/feedback" hx-target="this" hx-swap="outerHTML">
+      <input type="hidden" name="url" value="{{ item.url }}">
+      <input type="hidden" name="title" value="{{ item.title }}">
+      <input type="hidden" name="top_node" value="{{ item.top_node }}">
+      <input type="hidden" name="node" value="{{ node or '' }}">
+      <input type="text" name="text" placeholder="ваша реакція…" required>
+    </form>
+  {% endif %}
 </article>

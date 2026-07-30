@@ -142,7 +142,12 @@ def apply_reaction(
             events_db,
             "feedback",
             node_id,
-            {"text": text, "url": item_url, "topic_hint": topic_hint},
+            {
+                "text": text,
+                "url": item_url,
+                "reaction": reaction,
+                "topic_hint": topic_hint,
+            },
             ts=when,
         )
         pending_topics.append_topic(
@@ -154,7 +159,11 @@ def apply_reaction(
         raise ValueError(f"reaction {reaction!r} requires a node_id")
 
     events.append_event(
-        events_db, "feedback", node_id, {"text": text, "url": item_url}, ts=when
+        events_db,
+        "feedback",
+        node_id,
+        {"text": text, "url": item_url, "reaction": reaction},
+        ts=when,
     )
 
     delta = like_delta if reaction == "like" else dislike_delta

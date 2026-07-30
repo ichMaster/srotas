@@ -51,7 +51,11 @@ def test_like_raises_weight_and_writes_events(tmp_path):
     assert [e.kind for e in all_events] == ["feedback", "weight_update"]
     fb, wu = all_events
     assert fb.node_id == "alpha"
-    assert fb.payload == {"text": "love this", "url": "https://ex.com/a"}
+    assert fb.payload == {
+        "text": "love this",
+        "url": "https://ex.com/a",
+        "reaction": "like",
+    }
     assert wu.node_id == "alpha"
     assert abs(wu.payload["delta"] - 0.05) < 1e-9
     assert abs(wu.payload["old_weight"] - 0.60) < 1e-9

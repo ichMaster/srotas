@@ -118,3 +118,30 @@ def read_events(db_path: str | Path, kind: str | None = None) -> list[Event]:
         )
         for row in rows
     ]
+
+
+def latest_feedback_by_url(db_path: str | Path) -> dict[str, dict]:
+    """The latest feedback (+ its weight change, if any) for each item URL.
+
+    Used by the feed to show a **persisted** "already reacted" state — derived
+    from the journal, not from ephemeral page state, so it survives a reload or
+    a node-filter navigation (a plain page GET). Each value:
+    ``{"reaction", "old_weight", "new_weight"}`` — the weight fields are
+    ``None`` for ``new_topic`` (no weight change). Later feedback for the same
+    URL overwrites earlier (read_events is insertion-ordered).
+    """
+    weight_updates = {
+        (e.ts, e.node_id): e for e in read_events(db_path, kind="weight_update")
+    }
+    latest: dict[str, dict] = {}
+    for event in read_events(db_path, kind="feedback"):
+        url = event.payload.get("url")
+        if not url:
+            continue
+        wu = weight_updates.get((event.ts, event.node_id))
+        latest[url] = {
+            "reaction": event.payload.get("reaction"),
+            "old_weight": wu.payload.get("old_weight") if wu else None,
+            "new_weight": wu.payload.get("new_weight") if wu else None,
+        }
+    return latest
