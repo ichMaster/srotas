@@ -13,12 +13,12 @@
 - id: science-fiction-literature
   label: "Наукова фантастика і класична література"
   keywords: [science fiction, Greg Egan, Strugatsky, Stanislaw Lem, Ted Chiang, Arthur C. Clarke, speculative fiction, hard sci-fi]
-  weight: 0.75
+  weight: 0.85
 
 - id: consciousness-philosophy
   label: "Філософія свідомості і розуму"
   keywords: [philosophy of mind, consciousness studies, consciousness, artificial consciousness, qualia, free will, identity]
-  weight: 0.70
+  weight: 0.75
 
 - id: eastern-spirituality-practice
   label: "Східна філософія і духовні практики"
@@ -53,7 +53,7 @@
 - id: impressionist-art-aesthetics
   label: "Імпресіонізм і естетика світла"
   keywords: [impressionism, Claude Monet, Camille Pissarro, art history, light in art, color theory, painting, visual arts, aesthetic theory]
-  weight: 0.48
+  weight: 0.34
 
 - id: quantum-physics-theory
   label: "Квантова фізика і теоретична механіка"
