@@ -100,6 +100,30 @@ def test_first_seen_preserved_on_update(tmp_path):
     assert first_seen == "2026-07-01"
 
 
+def test_score_and_top_node_survive_a_re_collect(tmp_path):
+    """A re-collect (e.g. an incremental pass upserting the same URL again)
+    must never wipe a scored/reacted item's score or top_node — feedback and
+    ranking must merge with fresh collector data, not be reset by it."""
+    db = _db(tmp_path)
+    url = "https://ex.com/a"
+    items.upsert(db, items.Item(url, "guardian", "T", "s"))
+    items.set_score(db, url, 0.62, "ai-systems-development")
+
+    # The collector sees this URL again (refreshed title/summary) and re-upserts.
+    items.upsert(db, items.Item(url, "guardian", "T (updated)", "s2"))
+
+    conn = sqlite3.connect(db)
+    try:
+        title, score, top_node = conn.execute(
+            "SELECT title, score, top_node FROM items WHERE url = ?", (url,)
+        ).fetchone()
+    finally:
+        conn.close()
+    assert title == "T (updated)"  # the collected fields did refresh
+    assert score == 0.62  # but score/top_node — the feedback-bearing fields —
+    assert top_node == "ai-systems-development"  # survived untouched
+
+
 def test_derived_columns_stay_null_this_phase(tmp_path):
     """embedding/score/top_node are phase 0.3's — NULL after a collect upsert."""
     db = _db(tmp_path)
