@@ -1,6 +1,34 @@
 Srotas — Release Notes
 ======================
 
+Version 0.6.0 (2026-08-02)
+---------------------------
+Phase v0.6 — Wikipedia + Google News collectors (ROADMAP §0.6).
+The feed now draws on all three sources.
+
+- collectors/wikipedia.py: MediaWiki REST v1 search (one OR-joined request per
+  node) + the daily featured article; published_at is always None -- the feed
+  day falls back to first_seen.
+- collectors/gnews.py: Google News RSS via feedparser (one OR-joined request
+  per node, en-US locale); the response is fetched over an injectable
+  httpx.Client and parsed from bytes, never a live URL, to keep the mockable
+  HTTP seam intact.
+- core/pipeline.run_pass now collects from all three sources into the same
+  items.sqlite; PassSummary.collected is a per-source mapping. Cross-source
+  URL dedup needed no new code -- the existing URL-PK upsert already merges
+  repeats.
+- Relocated CollectSummary to collectors/base.py, shared by all three
+  collectors (re-exported from guardian.py -- no breakage).
+- Fixed from live testing: Wikimedia's User-Agent policy 403s a generic
+  HTTP-library user agent; the featured feed's real response shape differs
+  from a search result (no "key" field); all three collectors were leaking
+  raw HTML (search-highlight spans, inline markup, a link-only GNews
+  description) into "summary" -- now stripped to plain text everywhere.
+- 136 tests green, ruff clean; all collector HTTP and Voyage embeddings mocked.
+
+Verified live against the real APIs: 281 new Wikipedia items, 1340 new GNews
+items collected and scored alongside the existing 668 Guardian items.
+
 Version 0.5.0 (2026-07-30)
 ---------------------------
 Phase v0.5 — Feedback loop, end to end (ROADMAP §0.5).
