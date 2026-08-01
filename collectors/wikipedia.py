@@ -21,7 +21,7 @@ from pathlib import Path
 
 import httpx
 
-from collectors.base import CollectSummary
+from collectors.base import CollectSummary, strip_html
 from core import items
 from core.model import Node
 
@@ -69,7 +69,7 @@ def normalize(page: dict) -> items.Item:
         url=url,
         source="wikipedia",
         title=page.get("title", ""),
-        summary=page.get("excerpt") or page.get("extract"),
+        summary=strip_html(page.get("excerpt") or page.get("extract")),
         published_at=None,
     )
 

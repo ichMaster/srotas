@@ -20,7 +20,7 @@ from pathlib import Path
 
 import httpx
 
-from collectors.base import CollectSummary
+from collectors.base import CollectSummary, strip_html
 from core import config, items, model
 from core.model import Node
 
@@ -42,13 +42,17 @@ def build_query(node: Node) -> str:
 
 
 def normalize(result: dict) -> items.Item:
-    """Map one Guardian search result to an :class:`~core.items.Item`."""
+    """Map one Guardian search result to an :class:`~core.items.Item`.
+
+    ``trailText`` can carry inline markup (``<strong>``, trailing ``<br>``,
+    confirmed live) — stripped to plain text (ARCHITECTURE §Item store).
+    """
     fields = result.get("fields") or {}
     return items.Item(
         url=result["webUrl"],
         source="guardian",
         title=result.get("webTitle", ""),
-        summary=fields.get("trailText"),
+        summary=strip_html(fields.get("trailText")),
         published_at=result.get("webPublicationDate"),
     )
 

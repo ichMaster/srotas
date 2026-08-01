@@ -22,7 +22,7 @@ from pathlib import Path
 import feedparser
 import httpx
 
-from collectors.base import CollectSummary
+from collectors.base import CollectSummary, strip_html
 from core import items
 from core.model import Node
 
@@ -46,12 +46,17 @@ def _published_at(entry) -> str | None:
 
 
 def normalize(entry) -> items.Item:
-    """Map one feedparser entry to an :class:`~core.items.Item`."""
+    """Map one feedparser entry to an :class:`~core.items.Item`.
+
+    Google News RSS's ``description`` is only an ``<a>…</a>&nbsp;<font>…</font>``
+    wrapper (confirmed live, no real excerpt) — stripped to plain text like
+    the other two collectors (ARCHITECTURE §Item store).
+    """
     return items.Item(
         url=entry.get("link", ""),
         source="gnews",
         title=entry.get("title", ""),
-        summary=entry.get("summary"),
+        summary=strip_html(entry.get("summary")),
         published_at=_published_at(entry),
     )
 
