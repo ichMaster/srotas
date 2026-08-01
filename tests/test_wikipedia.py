@@ -39,6 +39,24 @@ def test_normalize_featured_uses_extract_when_no_excerpt():
     assert item.summary == "extract text"
 
 
+def test_normalize_real_featured_shape_has_no_key_field():
+    """Regression (confirmed live against the real API): the featured feed's
+    ``tfa`` object carries no ``key`` at all — it uses ``content_urls`` and
+    ``extract`` instead of the search result's ``key``/``excerpt``."""
+    tfa = {
+        "title": "Aquilegia",
+        "titles": {"canonical": "Aquilegia"},
+        "extract": "Aquilegia is a genus of flowering plants.",
+        "content_urls": {
+            "desktop": {"page": "https://en.wikipedia.org/wiki/Aquilegia"}
+        },
+    }
+    item = wikipedia.normalize(tfa)
+    assert item.url == "https://en.wikipedia.org/wiki/Aquilegia"
+    assert item.title == "Aquilegia"
+    assert item.summary == "Aquilegia is a genus of flowering plants."
+
+
 def test_build_query_or_joins_keywords():
     node = Node("n", "Н", ["quantum physics", "entanglement"], 0.5)
     assert wikipedia.build_query(node) == '"quantum physics" OR "entanglement"'
@@ -142,3 +160,32 @@ def test_same_url_across_node_and_featured_dedups_to_one_row(tmp_path):
     assert summary.fetched == 2
     assert summary.new == 1
     assert summary.deduped == 1
+
+
+def test_collect_sets_a_descriptive_user_agent_on_the_owned_client(
+    tmp_path, monkeypatch
+):
+    """Regression: Wikimedia's User-Agent policy 403s a generic HTTP-library
+    user agent (confirmed live) — the collector's own client must always send
+    a descriptive one, not just when a test happens to inject a client."""
+
+    def handler(request):
+        if "/search/page" in str(request.url):
+            return httpx.Response(200, json=_search_response([]))
+        return httpx.Response(200, json={})
+
+    captured = {}
+    real_client = httpx.Client
+
+    class RecordingClient(real_client):
+        def __init__(self, *args, **kwargs):
+            captured["headers"] = kwargs.get("headers")
+            kwargs["transport"] = httpx.MockTransport(handler)
+            super().__init__(*args, **kwargs)
+
+    monkeypatch.setattr(wikipedia.httpx, "Client", RecordingClient)
+
+    wikipedia.collect([], tmp_path / "items.sqlite", today=date(2026, 7, 30))
+
+    assert captured["headers"] is not None
+    assert captured["headers"]["User-Agent"].startswith("Srotas/")

@@ -31,6 +31,13 @@ FEATURED_URL = "https://en.wikipedia.org/api/rest_v1/feed/featured"
 # per-node limit keeps each request small.
 SEARCH_LIMIT = 20
 _TIMEOUT = httpx.Timeout(30.0)
+# Wikimedia's User-Agent policy (meta.wikimedia.org/wiki/User-Agent_policy)
+# rejects generic HTTP-library user agents with a 403 — a descriptive one is
+# required, not optional.
+_USER_AGENT = (
+    "Srotas/0.6 (personal news feed prototype; "
+    "https://github.com/ichMaster/srotas)"
+)
 
 __all__ = [
     "CollectSummary",
@@ -48,14 +55,20 @@ def build_query(node: Node) -> str:
 
 
 def normalize(page: dict) -> items.Item:
-    """Map one MediaWiki search result (or the featured-feed's ``tfa``) to an
-    :class:`~core.items.Item`. Both shapes carry ``title`` + ``key``; the
-    summary is ``excerpt`` (search) or ``extract`` (featured)."""
-    key = page["key"]
+    """Map one MediaWiki search result or the featured-feed's ``tfa`` to an
+    :class:`~core.items.Item`. The two REST shapes genuinely differ (confirmed
+    live): a search result carries ``key`` + ``excerpt``; ``tfa`` has no
+    ``key`` at all — it carries ``content_urls.desktop.page`` (the URL,
+    ready-made) and ``extract`` instead."""
+    content_urls = page.get("content_urls") or {}
+    url = content_urls.get("desktop", {}).get("page")
+    if not url:
+        key = page.get("key") or page.get("titles", {}).get("canonical", "")
+        url = f"https://en.wikipedia.org/wiki/{key}"
     return items.Item(
-        url=f"https://en.wikipedia.org/wiki/{key}",
+        url=url,
         source="wikipedia",
-        title=page.get("title", key),
+        title=page.get("title", ""),
         summary=page.get("excerpt") or page.get("extract"),
         published_at=None,
     )
@@ -92,7 +105,7 @@ def collect(
     nodes = list(nodes)
     owns_client = client is None
     if owns_client:
-        client = httpx.Client(timeout=_TIMEOUT)
+        client = httpx.Client(timeout=_TIMEOUT, headers={"User-Agent": _USER_AGENT})
     fetched = new = deduped = 0
     try:
         collected: list[items.Item] = []
