@@ -230,3 +230,5 @@ items.sqlite-wal
 items.sqlite-shm
 # Private snapshots for the full bootstrap (phase 0.7)
 bootstrap/snapshots/
+# MCP server config holds the Notion integration token — hand-edited, never committed
+.mcp.json
