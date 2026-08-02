@@ -230,5 +230,7 @@ items.sqlite-wal
 items.sqlite-shm
 # Private snapshots for the full bootstrap (phase 0.7)
 bootstrap/snapshots/
+# Bootstrap output, pre-review — derived from private snapshots (SROTAS-027)
+bootstrap/candidates.yaml
 # MCP server config holds the Notion integration token — hand-edited, never committed
 .mcp.json
