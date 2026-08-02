@@ -247,7 +247,7 @@ as a bootstrap event.
 | Lili conversations — **primary** | `role=user` messages only (the facts / summaries / thoughts layers are not used here) | Snapshot of `lumi/.lumi/store.json`: a hand copy (`cp`) into `bootstrap/snapshots/` before running bootstrap; that directory is gitignored (private conversations). The snapshot path is a CLI argument; its path and date are recorded in the bootstrap event |
 | Claude export | Conversation text | Settings → Privacy → Export data (web/Desktop); the archive with `conversations.json` arrives by email, the link lasts 24h; deleted conversations are not included |
 | Browser history | Domains, titles, repeat visits | Chrome: the `History` file in the profile; Firefox: `places.sqlite`. Both are locked while the browser runs — work off a copy in `bootstrap/snapshots/` |
-| Notion — whole base | Pages, databases, titles, tags | A one-off Markdown export of the workspace (Settings → Export); the adapter reads the export files. The Notion API is rejected — extra code and a token for a one-off procedure |
+| Notion — whole base | Pages, databases, titles, tags | A one-off Markdown export of the workspace (Settings → Export), **or** the agent fetching the same pages via the official `@notionhq/notion-mcp-server` and writing them to the identical `.md`-file shape (MISSION decision 27) — either way the adapter only ever reads local export files, never the API/MCP tool itself |
 
 **Procedure:** `bootstrap.py` reads the sources → an LLM pass extracts
 candidate topics with keywords in chunks (simplified — no windows or citation

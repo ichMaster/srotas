@@ -186,3 +186,26 @@ re-embedding.
     itself (`show-fields=bodyText`), so no scraping; Wikipedia/GNews items may
     leave `body` NULL. See ARCHITECTURE §Translation, §Item store, §Feed,
     §Contracts; ROADMAP §0.8–0.9.
+
+### Bootstrap addendum — 2026-08-02
+
+27. **Bootstrap snapshots may be agent-gathered; Notion access is via the
+    official MCP server instead of a manual Markdown export.** For Lumi and
+    browser history, the owner delegated the "hand copy" step itself to the
+    implementing agent (it already has local disk access) — the **artifact**
+    stays a real point-in-time snapshot file under `bootstrap/snapshots/`
+    (gitignored); only *who* runs the copy changed, not the "snapshot-based,
+    never live" principle (browser history is copied via `sqlite3 .backup`,
+    not a raw file copy, to get a consistent read of a WAL-mode DB the browser
+    may have open). For Notion, the owner authorized the official
+    `@notionhq/notion-mcp-server` (configured in `.mcp.json`, gitignored, same
+    treatment as `config.toml`) as a **one-off fetch tool**: the agent uses it
+    to pull pages and render them to a directory of `.md` files under
+    `bootstrap/snapshots/notion/` — the exact same shape a manual Notion
+    Markdown export would produce. `bootstrap/notion.py`'s adapter contract is
+    therefore **unchanged** from the original plan (ARCHITECTURE §Bootstrap):
+    it only ever reads a local directory of `.md` files: it does not call the
+    Notion API or the MCP tool itself, and never runs live at bootstrap-run
+    time. Claude export still requires the owner's own click-through
+    (Settings → Privacy → Export data) — that step has no agent-accessible
+    substitute (an authenticated claude.ai account action, not a local file).
